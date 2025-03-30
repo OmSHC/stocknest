@@ -272,31 +272,60 @@ class WatchlistManager {
                 
                 console.log('Creating badge for:', { symbol });
                 
-                // Create badge for selected stock
+                // Create badge for selected stock with improved styling
                 const badge = document.createElement('div');
                 badge.className = 'selected-stock-badge';
                 badge.style.cssText = `
                     display: inline-flex !important;
                     align-items: center !important;
-                    background-color: #0d6efd !important;
-                    color: white !important;
-                    padding: 8px 12px !important;
-                    border-radius: 4px !important;
+                    background-color: rgba(13, 110, 253, 0.1) !important;
+                    border: 1px solid rgba(13, 110, 253, 0.3) !important;
+                    color: #0d6efd !important;
+                    padding: 6px 10px !important;
+                    border-radius: 20px !important;
                     margin: 4px !important;
                     font-size: 0.9em !important;
+                    font-weight: 500 !important;
                     visibility: visible !important;
                     position: relative !important;
                     z-index: 1001 !important;
+                    transition: all 0.2s ease-in-out !important;
+                    cursor: default !important;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
                 `;
                 
-                // Set badge content with only stock symbol
+                // Set badge content with improved layout
                 badge.innerHTML = `
-                    <span class="fw-bold text-white">${symbol}</span>
-                    <button type="button" class="btn-close btn-close-white ms-2" 
-                            style="font-size: 0.7em; opacity: 0.8; display: inline-block !important;"
+                    <span class="stock-symbol" style="margin-right: 6px;">${symbol}</span>
+                    <button type="button" class="btn-close" 
+                            style="font-size: 0.7em; 
+                                   padding: 0px;
+                                   width: 16px;
+                                   height: 16px;
+                                   border-radius: 50%;
+                                   display: inline-flex !important;
+                                   align-items: center;
+                                   justify-content: center;
+                                   background: rgba(13, 110, 253, 0.2);
+                                   opacity: 0.8;
+                                   cursor: pointer;
+                                   transition: all 0.2s ease;"
                             aria-label="Remove ${symbol}"
+                            onmouseover="this.style.opacity='1'; this.style.background='rgba(13, 110, 253, 0.3)'"
+                            onmouseout="this.style.opacity='0.8'; this.style.background='rgba(13, 110, 253, 0.2)'"
                             onclick="event.preventDefault(); event.stopPropagation(); window.watchlistManager.removeStock('${checkbox.id}')"></button>
                 `;
+                
+                // Add hover effect to the badge
+                badge.addEventListener('mouseover', () => {
+                    badge.style.backgroundColor = 'rgba(13, 110, 253, 0.15)';
+                    badge.style.borderColor = 'rgba(13, 110, 253, 0.4)';
+                });
+                
+                badge.addEventListener('mouseout', () => {
+                    badge.style.backgroundColor = 'rgba(13, 110, 253, 0.1)';
+                    badge.style.borderColor = 'rgba(13, 110, 253, 0.3)';
+                });
                 
                 // Add badge to selected stocks list
                 selectedStocksList.appendChild(badge);
