@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Stock Portfolio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Portfolio Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card portfolio-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Portfolio Value</h5>
+                    <h2 class="card-value">${{ total_value|floatformat:2 }}</h2>
+                    <div class="trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+{{ daily_change|floatformat:2 }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card portfolio-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Investments</h5>
+                    <h2 class="card-value">${{ total_investments|floatformat:2 }}</h2>
+                    <div class="trend">
+                        <span>Last 30 days</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card portfolio-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Returns</h5>
+                    <h2 class="card-value">${{ total_returns|floatformat:2 }}</h2>
+                    <div class="trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+{{ returns_percentage|floatformat:2 }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card portfolio-card">
+                <div class="card-body">
+                    <h5 class="card-title">Cash Balance</h5>
+                    <h2 class="card-value">${{ cash_balance|floatformat:2 }}</h2>
+                    <div class="trend">
+                        <span>Available for trading</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Portfolio Performance</h5>
+                    <div class="timeframe-selector">
+                        <button class="btn btn-sm btn-outline-light active">1D</button>
+                        <button class="btn btn-sm btn-outline-light">1W</button>
+                        <button class="btn btn-sm btn-outline-light">1M</button>
+                        <button class="btn btn-sm btn-outline-light">1Y</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Asset Allocation</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="allocationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity & Watchlist -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Recent Transactions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="transaction-list">
+                        {% for transaction in recent_transactions %}
+                        <div class="transaction-item">
+                            <div class="transaction-icon">
+                                {% if transaction.type == 'buy' %}
+                                <i class="fas fa-arrow-down text-success"></i>
+                                {% else %}
+                                <i class="fas fa-arrow-up text-danger"></i>
+                                {% endif %}
+                            </div>
+                            <div class="transaction-details">
+                                <h6>{{ transaction.symbol }}</h6>
+                                <span class="text-muted">{{ transaction.date|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="transaction-amount">
+                                {% if transaction.type == 'buy' %}
+                                <span class="text-success">-${{ transaction.amount|floatformat:2 }}</span>
+                                {% else %}
+                                <span class="text-danger">+${{ transaction.amount|floatformat:2 }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Watchlist</h5>
+                </div>
+                <div class="card-body">
+                    <div class="watchlist-section" style="display: block;">
+                        <div class="watchlist-group mb-4">
+                            <div class="section-header d-flex align-items-center mb-3">
+                                <div class="section-icon me-2">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <h6 class="mb-0">My Watchlists</h6>
+                            </div>
+                            <div class="list-group">
+                                {% for watchlist in user.created_watchlists.all %}
+                                <a href="{% url 'dashboard:watchlist_detail' watchlist.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-watchlist-id="{{ watchlist.id }}" onclick="localStorage.setItem('activePanelId', 'watchlistPanel');">
+                                    <div class="d-flex align-items-center">
+                                        <div class="watchlist-icon me-2" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;">
+                                            <i class="fas fa-star"></i>
+                                        </div>
+                                        <div>
+                                            <div class="watchlist-name">{{ watchlist.name }}</div>
+                                            <div class="watchlist-meta">Created {{ watchlist.created_at|date:"M d, Y" }}</div>
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">{{ watchlist.stocks.count }}</span>
+                                </a>
+                                {% empty %}
+                                <div class="list-group-item text-muted">No watchlists created yet</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Performance Chart
+    const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(performanceCtx, {
+        type: 'line',
+        data: {
+            labels: {{ performance_labels|safe }},
+            datasets: [{
+                label: 'Portfolio Value',
+                data: {{ performance_data|safe }},
+                borderColor: '#6c5ce7',
+                backgroundColor: 'rgba(108, 92, 231, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#fff'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#fff'
+                    }
+                }
+            }
+        }
+    });
+
+    // Allocation Chart
+    const allocationCtx = document.getElementById('allocationChart').getContext('2d');
+    new Chart(allocationCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Stocks', 'ETFs', 'Crypto', 'Cash'],
+            datasets: [{
+                data: {{ allocation_data|safe }},
+                backgroundColor: [
+                    '#6c5ce7',
+                    '#00b894',
+                    '#fdcb6e',
+                    '#ff7675'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#fff'
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 

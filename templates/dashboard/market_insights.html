@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Market Insights - Stock Portfolio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Market Overview Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Market Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-chart-line fa-2x text-primary"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">S&P 500</h6>
+                                    <small class="text-muted">+1.2% Today</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-chart-bar fa-2x text-success"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">NASDAQ</h6>
+                                    <small class="text-muted">+0.8% Today</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-chart-pie fa-2x text-info"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">DOW</h6>
+                                    <small class="text-muted">+0.5% Today</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-globe fa-2x text-warning"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">VIX</h6>
+                                    <small class="text-muted">15.2 (-2.1%)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Market News -->
+        <div class="col-md-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Market News</h5>
+                </div>
+                <div class="card-body">
+                    {% if market_news %}
+                        {% for news in market_news %}
+                        <div class="news-item mb-3">
+                            <h6 class="mb-1">{{ news.title }}</h6>
+                            <p class="text-muted small mb-1">{{ news.source }} - {{ news.date }}</p>
+                            <p class="mb-0">{{ news.summary }}</p>
+                        </div>
+                        {% if not forloop.last %}
+                        <hr>
+                        {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No market news available at the moment.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sector Performance -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Sector Performance</h5>
+                </div>
+                <div class="card-body">
+                    {% if sector_performance %}
+                        {% for sector, performance in sector_performance.items %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>{{ sector }}</span>
+                            <span class="{% if performance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ performance|floatformat:2 }}%
+                            </span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar {% if performance >= 0 %}bg-success{% else %}bg-danger{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {% if performance >= 0 %}{{ performance }}{% else %}{{ performance|add:'100' }}{% endif %}%"
+                                 aria-valuenow="{{ performance }}" 
+                                 aria-valuemin="-100" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No sector performance data available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Market Trends -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Market Trends</h5>
+                </div>
+                <div class="card-body">
+                    {% if market_trends %}
+                        <div class="row">
+                            {% for trend in market_trends %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ trend.title }}</h6>
+                                        <p class="card-text">{{ trend.description }}</p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">{{ trend.date }}</small>
+                                            <span class="badge {% if trend.impact == 'positive' %}bg-success{% elif trend.impact == 'negative' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                {{ trend.impact|title }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No market trends available at the moment.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add any JavaScript for real-time updates or interactive features
+document.addEventListener('DOMContentLoaded', function() {
+    // Example: Refresh market data every 5 minutes
+    setInterval(function() {
+        // Implement real-time data updates here
+        console.log('Refreshing market data...');
+    }, 300000);
+});
+</script>
+{% endblock %} 

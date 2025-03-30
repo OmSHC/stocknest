@@ -1,0 +1,2323 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Primary Meta Tags -->
+    <title>{% block title %}Stock Portfolio Dashboard{% endblock %}</title>
+    <meta name="title" content="{% block meta_title %}Stock Portfolio Dashboard - Track Your Investments{% endblock %}">
+    <meta name="description" content="{% block meta_description %}Track your investments, manage watchlists, analyze market trends, and make informed decisions with our comprehensive stock portfolio dashboard.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}stock portfolio, investment tracking, market analysis, stock watchlist, portfolio management, stock market, trading dashboard, financial analysis{% endblock %}">
+    <meta name="author" content="Your Name">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:title" content="{% block og_title %}Stock Portfolio Dashboard{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Track your investments, manage watchlists, and analyze market trends with our comprehensive stock portfolio dashboard.{% endblock %}">
+    <meta property="og:image" content="{% static 'images/og-image.jpg' %}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ request.build_absolute_uri }}">
+    <meta property="twitter:title" content="{% block twitter_title %}Stock Portfolio Dashboard{% endblock %}">
+    <meta property="twitter:description" content="{% block twitter_description %}Track your investments, manage watchlists, and analyze market trends with our comprehensive stock portfolio dashboard.{% endblock %}">
+    <meta property="twitter:image" content="{% static 'images/og-image.jpg' %}">
+
+    <!-- Additional SEO Meta Tags -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" />
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}">
+    
+    <!-- Preload Critical Resources -->
+    <link rel="preload" href="{% static 'css/style.css' %}" as="style">
+    <link rel="preload" href="{% static 'js/main.js' %}" as="script">
+    
+    <!-- AdSense Code -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=YOUR_ADSENSE_CLIENT_ID"
+     crossorigin="anonymous"></script>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/right_sidebar.css' %}">
+
+    <!-- Schema.org Markup -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Stock Portfolio Dashboard",
+        "description": "Track your investments, manage watchlists, and analyze market trends with our comprehensive stock portfolio dashboard.",
+        "url": "{{ request.build_absolute_uri }}",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "INR"
+        },
+        "author": {
+            "@type": "Person",
+            "name": "Your Name"
+        }
+    }
+    </script>
+
+    <!-- Additional Schema for Organization -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Your Company Name",
+        "url": "{{ request.build_absolute_uri }}",
+        "logo": "{% static 'images/logo.png' %}",
+        "sameAs": [
+            "https://twitter.com/yourcompany",
+            "https://facebook.com/yourcompany",
+            "https://linkedin.com/company/yourcompany"
+        ]
+    }
+    </script>
+
+    <!-- Additional Schema for BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [{
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "{{ request.build_absolute_uri }}"
+        }{% block breadcrumb_items %}{% endblock %}]
+    }
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <style>
+        /* AdSense Styles */
+        .ad-container {
+            margin: 20px 0;
+            text-align: center;
+            min-height: 100px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ad-container.vertical {
+            min-height: 250px;
+        }
+
+        .ad-container.horizontal {
+            min-height: 90px;
+        }
+
+        .ad-container.responsive {
+            min-height: 100px;
+            width: 100%;
+        }
+
+        .ad-label {
+            color: #bdc3c7;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Left Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 70px;
+            height: 100vh;
+            background-color: #2c3e50;
+            z-index: 1000;
+            transition: width 0.3s ease;
+            overflow-x: hidden;
+            padding: 0 0 0 2px;
+        }
+
+        .sidebar-header {
+            padding: 10px 5px;
+            text-align: center;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .sidebar-header i {
+            margin-left: 0;
+        }
+
+        .sidebar-header h3 {
+            margin: 0;
+            color: #ecf0f1;
+            font-size: 1.2rem;
+            white-space: nowrap;
+        }
+
+        .sidebar-nav {
+            padding: 10px 0;
+        }
+
+        .sidebar .nav-item {
+            margin-bottom: 5px;
+            width: 100%;
+        }
+
+        .sidebar .nav-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 5px;
+            color: #bdc3c7;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .sidebar .nav-link:hover {
+            color: #ecf0f1;
+            background-color: #34495e;
+        }
+
+        .sidebar .nav-link i {
+            font-size: 1.5rem;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            text-align: center;
+            display: block;
+        }
+
+        .sidebar .nav-link span {
+            font-size: 0.75rem;
+            text-align: center;
+            white-space: nowrap;
+            margin: 3px 0 0 0;
+            padding: 0;
+            width: 100%;
+            display: block;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            padding: 10px 0;
+            background-color: #2c3e50;
+            border-top: 1px solid #34495e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        .user-toggle {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #ecf0f1;
+            width: 100%;
+            padding: 8px 5px;
+            margin: 0;
+        }
+
+        .avatar-icon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            height: 40px;
+        }
+
+        .avatar-icon i {
+            font-size: 1.5rem;
+            color: #ecf0f1;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: block;
+        }
+
+        .username {
+            text-align: center;
+            width: 100%;
+            font-size: 0.75rem;
+            margin: 3px 0 0 0;
+            padding: 0;
+            display: block;
+            white-space: nowrap;
+        }
+
+        .user-info .dropdown-toggle::after {
+            display: none;
+        }
+
+        /* Adjust middle sidebar position */
+        .middle-sidebar {
+            position: fixed;
+            top: 0;
+            left: 70px; /* Adjusted to match new left sidebar width */
+            width: 300px;
+            height: 100vh;
+            background-color: #2c3e50;
+            border-right: 1px solid #34495e;
+            z-index: 100;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .middle-sidebar-header {
+            padding: 20px;
+            background-color: #34495e;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .middle-sidebar-content {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .section-stats-card {
+            background-color: #34495e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: auto;
+            position: sticky;
+            bottom: 0;
+            z-index: 1;
+        }
+
+        .stats-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stats-item:last-child {
+            border-bottom: none;
+        }
+
+        .stats-item i {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            margin-right: 15px;
+            color: #ecf0f1;
+        }
+
+        .stats-info {
+            flex: 1;
+        }
+
+        .stats-label {
+            display: block;
+            color: #bdc3c7;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+
+        .stats-value {
+            color: #ecf0f1;
+            font-weight: 500;
+        }
+
+        .stats-value.positive {
+            color: #2ecc71;
+        }
+
+        .stats-value.negative {
+            color: #e74c3c;
+        }
+
+        .quick-actions {
+            margin-top: 20px;
+        }
+
+        .quick-actions h5 {
+            color: #bdc3c7;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .quick-actions .btn {
+            text-align: left;
+            padding: 8px 15px;
+        }
+
+        .quick-actions .btn i {
+            width: 20px;
+            margin-right: 8px;
+            text-align: center;
+        }
+
+        /* User Panel Styles */
+        .user-panel {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100vh;
+            background-color: #2c3e50;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+            transition: right 0.3s ease-in-out;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .user-panel.active {
+            right: 0;
+        }
+
+        .user-panel-header {
+            padding: 20px;
+            background-color: #34495e;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .user-panel-avatar {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+        }
+
+        .user-panel-avatar i {
+            font-size: 3rem;
+            color: #ecf0f1;
+        }
+
+        .user-panel-info {
+            flex: 1;
+        }
+
+        .user-panel-info h4 {
+            margin: 0;
+            color: #ecf0f1;
+            font-size: 1.1rem;
+        }
+
+        .user-panel-info p {
+            margin: 5px 0 0;
+            color: #bdc3c7;
+            font-size: 0.9rem;
+        }
+
+        .close-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #ecf0f1;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .close-panel:hover {
+            color: #e74c3c;
+        }
+
+        .user-panel-content {
+            padding: 20px;
+        }
+
+        .user-panel-section {
+            margin-bottom: 25px;
+        }
+
+        .user-panel-section h5 {
+            color: #bdc3c7;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .user-panel-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .user-panel-menu li {
+            margin-bottom: 5px;
+        }
+
+        .user-panel-menu a {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            color: #ecf0f1;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+
+        .user-panel-menu a:hover {
+            background-color: #34495e;
+        }
+
+        .user-panel-menu i {
+            width: 20px;
+            margin-right: 10px;
+            text-align: center;
+        }
+
+        .logout-button {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: #e74c3c;
+            text-decoration: none;
+            border-radius: 5px;
+            background-color: rgba(231, 76, 60, 0.1);
+            transition: background-color 0.2s;
+        }
+
+        .logout-button:hover {
+            background-color: rgba(231, 76, 60, 0.2);
+        }
+
+        .logout-button i {
+            width: 20px;
+            margin-right: 10px;
+            text-align: center;
+        }
+
+        /* Overlay for closing panel when clicking outside */
+        .panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 999;
+        }
+
+        .panel-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Main Content Wrapper */
+        #mainContentWrapper {
+            margin-left: 370px; /* Width of left sidebar (70px) + middle sidebar (300px) */
+            padding: 20px;
+            min-height: 100vh;
+            background-color: #1a252f;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Enhanced Section Styles */
+        .watchlist-header {
+            padding: 20px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .watchlist-header h5 {
+            color: #ecf0f1;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .create-watchlist-btn {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            border: none;
+            padding: 8px 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .create-watchlist-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .section-header {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #3498db;
+            font-size: 1.1rem;
+        }
+
+        .section-header h6 {
+            color: #bdc3c7;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+        }
+
+        .watchlist-group .list-group-item {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 8px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            padding: 12px 16px;
+        }
+
+        .watchlist-group .list-group-item:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .watchlist-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 193, 7, 0.1);
+            border-radius: 8px;
+            color: #ffc107;
+            font-size: 0.9rem;
+        }
+
+        .watchlist-name {
+            color: #ecf0f1;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .watchlist-meta {
+            color: #95a5a6;
+            font-size: 0.8rem;
+        }
+
+        .watchlist-group .badge {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+            font-weight: 500;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            border-radius: 20px;
+        }
+
+        /* Section-specific colors */
+        .portfolio-section .watchlist-header i {
+            color: #3498db;
+        }
+
+        .market-section .watchlist-header i {
+            color: #2ecc71;
+        }
+
+        .risk-section .watchlist-header i {
+            color: #f1c40f;
+        }
+
+        .reports-section .watchlist-header i {
+            color: #3498db;
+        }
+
+        /* Section-specific gradients */
+        .portfolio-section .create-watchlist-btn {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+        }
+
+        .market-section .create-watchlist-btn {
+            background: linear-gradient(145deg, #2ecc71, #27ae60);
+        }
+
+        .risk-section .create-watchlist-btn {
+            background: linear-gradient(145deg, #f1c40f, #f39c12);
+        }
+
+        .reports-section .create-watchlist-btn {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+        }
+
+        /* Modal Styles */
+        .modal-content {
+            background-color: #2c3e50;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+        }
+
+        .modal-title {
+            color: #ecf0f1;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-label {
+            color: #bdc3c7;
+            font-weight: 500;
+        }
+
+        .input-group-text {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ecf0f1;
+        }
+
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ecf0f1;
+            border-radius: 8px;
+            padding: 10px 16px;
+        }
+
+        .form-control:focus {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: #3498db;
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+
+        .form-check-label {
+            color: #bdc3c7;
+        }
+
+        .form-check-input:checked {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+
+        .privacy-options {
+            background-color: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .selected-stocks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            min-height: 50px;
+        }
+
+        .stock-tag {
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .stock-tag .remove-stock {
+            margin-left: 8px;
+            cursor: pointer;
+            color: #e74c3c;
+        }
+
+        .modal-footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+        }
+
+        .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        /* Button Styles */
+        .btn-primary {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+            border: none;
+            padding: 8px 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ecf0f1;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-outline-secondary {
+            color: #ecf0f1;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="dark-theme">
+    <!-- Skip to main content for accessibility -->
+    <a href="#mainContent" class="skip-link">Skip to main content</a>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="leftSidebar" role="navigation" aria-label="Main navigation">
+        <div class="sidebar-header">
+            <i class="fas fa-dove" style="font-size: 1.8rem; color: #ecf0f1;" aria-hidden="true"></i>
+        </div>
+        <nav class="sidebar-nav">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:dashboard' %}" aria-current="page">
+                        <i class="fas fa-chart-line" aria-hidden="true"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-panel="watchlist">
+                        <i class="fas fa-star" aria-hidden="true"></i>
+                        <span>Watchlist</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-panel="portfolio">
+                        <i class="fas fa-briefcase" aria-hidden="true"></i>
+                        <span>Portfolio</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-panel="market-insights">
+                        <i class="fas fa-newspaper" aria-hidden="true"></i>
+                        <span>Market</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-panel="risk-analysis">
+                        <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                        <span>Risk</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-panel="reports">
+                        <i class="fas fa-file-alt" aria-hidden="true"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <!-- AdSense Container for Sidebar -->
+        <div class="ad-container vertical" role="complementary" aria-label="Advertisement">
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="YOUR_ADSENSE_CLIENT_ID"
+                 data-ad-slot="YOUR_SIDEBAR_AD_SLOT"
+                 data-ad-format="vertical"
+                 data-full-width-responsive="false"></ins>
+        </div>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <a href="#" class="user-toggle" id="userPanelToggle" aria-label="User menu">
+                    <div class="avatar-icon">
+                        <i class="fas fa-user-circle" aria-hidden="true"></i>
+                    </div>
+                    <span class="username">{{ user.username }}</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Middle Sidebar -->
+    <div id="middleSidebar" class="middle-sidebar">
+        <div class="middle-sidebar-header">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-user-circle me-2"></i>
+                <h4 class="mb-0">User Profile</h4>
+            </div>
+        </div>
+        <div class="middle-sidebar-content">
+            <!-- User Profile Panel -->
+            <div id="userProfilePanel" class="middle-sidebar-panel" style="display: none;">
+                <div class="watchlist-header mb-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-user-circle text-primary me-2" style="font-size: 1.2rem;"></i>
+                        <h5 class="mb-0">User Profile</h5>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn">
+                        <i class="fas fa-user-edit me-2"></i>Edit Profile
+                    </button>
+                </div>
+                
+                <div class="watchlist-group mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon me-2">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <h6 class="mb-0">Profile Information</h6>
+                    </div>
+                    <div class="list-group">
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">{{ user.username }}</div>
+                                    <div class="watchlist-meta">{{ user.email }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="watchlist-group mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon me-2">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h6 class="mb-0">Portfolio Stats</h6>
+                    </div>
+                    <div class="list-group">
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(46, 204, 113, 0.1); color: #2ecc71;">
+                                    <i class="fas fa-briefcase"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">Portfolio Value</div>
+                                    <div class="watchlist-meta">₹10,25,000</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(46, 204, 113, 0.1); color: #2ecc71;">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">Total Returns</div>
+                                    <div class="watchlist-meta">+20.5%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="navigation-section">
+                    <div class="watchlist-group mb-4">
+                        <div class="section-header d-flex align-items-center mb-3">
+                            <div class="section-icon me-2">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <h6 class="mb-0">Created By Me</h6>
+                        </div>
+                        <div class="list-group">
+                            {% for watchlist in user.created_watchlists.all %}
+                            <a href="javascript:void(0)" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center watchlist-item" 
+                               data-watchlist-id="{{ watchlist.id }}" data-watchlist-url="{% url 'dashboard:watchlist_detail' watchlist.id %}" onclick="loadWatchlistContent(event, {{ watchlist.id }})">
+                                <div class="d-flex align-items-center">
+                                    <div class="watchlist-icon me-2" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;">
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <div>
+                                        <div class="watchlist-name">{{ watchlist.name }}</div>
+                                        <div class="watchlist-meta">Created {{ watchlist.created_at|date:"M d, Y" }}</div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">{{ watchlist.stocks.count }}</span>
+                            </a>
+                            {% empty %}
+                            <div class="list-group-item text-muted">No watchlists created yet</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Watchlist Section -->
+            <div class="watchlist-section" style="display: none;">
+                <div class="watchlist-header mb-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-star text-warning me-2" style="font-size: 1.2rem;"></i>
+                        <h5 class="mb-0">My Watchlists</h5>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn" data-bs-toggle="modal" data-bs-target="#createWatchlistModal">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Watchlist
+                    </button>
+                </div>
+                
+                <div class="watchlist-group mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon me-2">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <h6 class="mb-0">Created By Me</h6>
+                    </div>
+                    <div class="list-group">
+                        {% for watchlist in user.created_watchlists.all %}
+                        <a href="javascript:void(0)" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center watchlist-item" 
+                           data-watchlist-id="{{ watchlist.id }}" data-watchlist-url="{% url 'dashboard:watchlist_detail' watchlist.id %}" onclick="loadWatchlistContent(event, {{ watchlist.id }})">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">{{ watchlist.name }}</div>
+                                    <div class="watchlist-meta">Created {{ watchlist.created_at|date:"M d, Y" }}</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">{{ watchlist.stocks.count }}</span>
+                        </a>
+                        {% empty %}
+                        <div class="list-group-item text-muted">No watchlists created yet</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="watchlist-group mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon me-2">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h6 class="mb-0">Subscribed Watchlists</h6>
+                    </div>
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">Market Leaders</div>
+                                    <div class="watchlist-meta">by John Doe</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">15</span>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">Growth Stocks</div>
+                                    <div class="watchlist-meta">by Jane Smith</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">10</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Portfolio Section -->
+            <div class="portfolio-section" style="display: none;">
+                <div class="watchlist-header mb-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-briefcase text-primary me-2" style="font-size: 1.2rem;"></i>
+                        <h5 class="mb-0">My Holdings</h5>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn">
+                        <i class="fas fa-plus-circle me-2"></i>Add New Stock
+                    </button>
+                </div>
+                
+                <div class="watchlist-group mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon me-2">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h6 class="mb-0">Active Holdings</h6>
+                    </div>
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
+                                    <i class="fas fa-briefcase"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">Reliance Industries</div>
+                                    <div class="watchlist-meta">Quantity: 100 | Avg Price: ₹2,450</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-success rounded-pill">+5.2%</span>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
+                                    <i class="fas fa-briefcase"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">TCS</div>
+                                    <div class="watchlist-meta">Quantity: 50 | Avg Price: ₹3,200</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-danger rounded-pill">-2.1%</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Market Section -->
+            <div class="market-section" style="display: none;">
+                <div class="watchlist-header mb-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-chart-line text-success me-2" style="font-size: 1.2rem;"></i>
+                        <h5 class="mb-0">Market Overview</h5>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn">
+                        <i class="fas fa-sync me-2"></i>Refresh Data
+                    </button>
+                </div>
+                
+                <div class="watchlist-group mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon me-2">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <h6 class="mb-0">Market Indices</h6>
+                    </div>
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(46, 204, 113, 0.1); color: #2ecc71;">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">NIFTY 50</div>
+                                    <div class="watchlist-meta">Last Updated: 2m ago</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-success rounded-pill">+1.2%</span>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c;">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">SENSEX</div>
+                                    <div class="watchlist-meta">Last Updated: 2m ago</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-danger rounded-pill">-0.8%</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Section -->
+            <div class="risk-section" style="display: none;">
+                <div class="watchlist-header mb-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-shield-alt text-warning me-2" style="font-size: 1.2rem;"></i>
+                        <h5 class="mb-0">Risk Analysis</h5>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn">
+                        <i class="fas fa-sync me-2"></i>Update Analysis
+                    </button>
+                </div>
+                
+                <div class="watchlist-group mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon me-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h6 class="mb-0">Risk Categories</h6>
+                    </div>
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c;">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">High Risk Stocks</div>
+                                    <div class="watchlist-meta">3 stocks identified</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-danger rounded-pill">3</span>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(46, 204, 113, 0.1); color: #2ecc71;">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">Safe Stocks</div>
+                                    <div class="watchlist-meta">8 stocks identified</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-success rounded-pill">8</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div class="reports-section" style="display: none;">
+                <div class="watchlist-header mb-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-file-alt text-info me-2" style="font-size: 1.2rem;"></i>
+                        <h5 class="mb-0">Reports</h5>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn">
+                        <i class="fas fa-plus-circle me-2"></i>New Report
+                    </button>
+                </div>
+                
+                <div class="watchlist-group mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon me-2">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <h6 class="mb-0">Recent Reports</h6>
+                    </div>
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">Monthly Performance</div>
+                                    <div class="watchlist-meta">Generated: Today</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-info rounded-pill">New</span>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="watchlist-icon me-2" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div>
+                                    <div class="watchlist-name">Tax Report</div>
+                                    <div class="watchlist-meta">Generated: Yesterday</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-secondary rounded-pill">Draft</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AdSense Container for Middle Sidebar -->
+            <div class="ad-container horizontal" role="complementary" aria-label="Advertisement">
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="YOUR_ADSENSE_CLIENT_ID"
+                     data-ad-slot="YOUR_MIDDLE_SIDEBAR_AD_SLOT"
+                     data-ad-format="horizontal"
+                     data-full-width-responsive="true"></ins>
+            </div>
+
+            <!-- Section Stats Cards -->
+            <div class="section-stats-card" id="dashboardStats">
+                <div class="stats-item">
+                    <i class="fas fa-chart-line" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Market Trend</span>
+                        <span class="stats-value positive">+2.5%</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-rupee-sign" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Portfolio Value</span>
+                        <span class="stats-value">₹10,25,000</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-arrow-up" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Today's Gain</span>
+                        <span class="stats-value positive">+₹1,02,500</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-arrow-down" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Today's Loss</span>
+                        <span class="stats-value negative">-₹36,900</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-stats-card" id="watchlistStats" style="display: none;">
+                <div class="stats-item">
+                    <i class="fas fa-star" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Total Watchlists</span>
+                        <span class="stats-value">4</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-user-plus" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Subscribers</span>
+                        <span class="stats-value">12</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-share-alt" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Public Lists</span>
+                        <span class="stats-value">2</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-lock" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Private Lists</span>
+                        <span class="stats-value">2</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-stats-card" id="portfolioStats" style="display: none;">
+                <div class="stats-item">
+                    <i class="fas fa-briefcase" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Total Holdings</span>
+                        <span class="stats-value">8</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-rupee-sign" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Total Investment</span>
+                        <span class="stats-value">₹8,50,000</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-chart-pie" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Diversification</span>
+                        <span class="stats-value">5 Sectors</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-percentage" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Overall Return</span>
+                        <span class="stats-value positive">+20.5%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-stats-card" id="marketStats" style="display: none;">
+                <div class="stats-item">
+                    <i class="fas fa-globe" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Market Cap</span>
+                        <span class="stats-value">₹2.5T</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-chart-line" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Market Trend</span>
+                        <span class="stats-value positive">+2.5%</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-exchange-alt" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Volume</span>
+                        <span class="stats-value">1.2B</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-thermometer-half" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Market Sentiment</span>
+                        <span class="stats-value">Neutral</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-stats-card" id="riskStats" style="display: none;">
+                <div class="stats-item">
+                    <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Risk Score</span>
+                        <span class="stats-value">Medium</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-balance-scale" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Portfolio Beta</span>
+                        <span class="stats-value">1.2</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Risk Alerts</span>
+                        <span class="stats-value">2</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-chart-bar" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Volatility</span>
+                        <span class="stats-value">15%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-stats-card" id="reportsStats" style="display: none;">
+                <div class="stats-item">
+                    <i class="fas fa-file-alt" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Total Reports</span>
+                        <span class="stats-value">5</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-calendar-check" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Last Generated</span>
+                        <span class="stats-value">Today</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-download" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Downloads</span>
+                        <span class="stats-value">3</span>
+                    </div>
+                </div>
+                <div class="stats-item">
+                    <i class="fas fa-share" aria-hidden="true"></i>
+                    <div class="stats-info">
+                        <span class="stats-label">Shared Reports</span>
+                        <span class="stats-value">1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include the right sidebar component -->
+    {% include 'components/right_sidebar.html' %}
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContentWrapper">
+        <!-- Page Content -->
+        <div class="content-wrapper" id="mainContent">
+            <!-- AdSense Container for Main Content Top -->
+            <div class="ad-container responsive" role="complementary" aria-label="Advertisement">
+                <div class="ad-label">Advertisement</div>
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="YOUR_ADSENSE_CLIENT_ID"
+                     data-ad-slot="YOUR_MAIN_CONTENT_TOP_SLOT"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content">
+                {% block content %}{% endblock %}
+            </div>
+
+            <!-- Watchlist Content -->
+            <div class="watchlist-content" style="display: none;">
+                <div class="card bg-dark text-light">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-star text-warning me-2"></i>Watchlists
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="watchlist-list">
+                            <!-- Watchlist list content will be shown here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Portfolio Content -->
+            <div class="portfolio-content" style="display: none;">
+                <div class="card bg-dark text-light">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-briefcase text-primary me-2"></i>Portfolio
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Portfolio content will be shown here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Market Content -->
+            <div class="market-content" style="display: none;">
+                <div class="card bg-dark text-light">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-chart-line text-success me-2"></i>Market Overview
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Market content will be shown here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Content -->
+            <div class="risk-content" style="display: none;">
+                <div class="card bg-dark text-light">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-shield-alt text-warning me-2"></i>Risk Analysis
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Risk content will be shown here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Content -->
+            <div class="reports-content" style="display: none;">
+                <div class="card bg-dark text-light">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-file-alt text-info me-2"></i>Reports
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Reports content will be shown here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- AdSense Container for Main Content Bottom -->
+            <div class="ad-container responsive" role="complementary" aria-label="Advertisement">
+                <div class="ad-label">Advertisement</div>
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="YOUR_ADSENSE_CLIENT_ID"
+                     data-ad-slot="YOUR_MAIN_CONTENT_BOTTOM_SLOT"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <!-- Custom JS -->
+    <script src="{% static 'js/right_sidebar.js' %}" defer></script>
+    <script src="{% static 'js/main.js' %}" defer></script>
+    <!-- AdSense Initialization -->
+    <script>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+    {% block extra_js %}{% endblock %}
+
+    <!-- Create Watchlist Modal -->
+    <div class="modal fade" id="createWatchlistModal" tabindex="-1" aria-labelledby="createWatchlistModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createWatchlistModalLabel">Create New Watchlist</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createWatchlistForm" method="post" action="{% url 'dashboard:create_watchlist' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="watchlistName" class="form-label">Watchlist Name</label>
+                            <input type="text" class="form-control" id="watchlistName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="watchlistDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="watchlistDescription" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="stockSelection" class="form-label">Select Stocks</label>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" id="stockSearch" placeholder="Search stocks by name or symbol...">
+                                <button class="btn btn-primary" type="button" id="addStock">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
+                            <div class="stock-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 10px; display: none;">
+                                <div class="list-group">
+                                    {% for stock in stocks %}
+                                    <div class="list-group-item stock-item" style="background: transparent; border: none; padding: 8px; display: none; cursor: pointer;" tabindex="0">
+                                        <div class="form-check">
+                                            <input class="form-check-input stock-checkbox" type="checkbox" value="{{ stock.id }}" id="stock{{ stock.id }}" name="stocks">
+                                            <label class="form-check-label" for="stock{{ stock.id }}">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{{ stock.symbol }}</strong>
+                                                        <small class="text-muted d-block">{{ stock.name }}</small>
+                                                    </div>
+                                                    <span class="badge bg-secondary">{{ stock.sector }}</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div id="noResults" class="text-center text-muted py-3" style="display: none;">
+                                    No stocks found matching your search.
+                                </div>
+                                <div id="searchLoading" class="text-center py-3" style="display: none;">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">Selected stocks: <span id="selectedCount">0</span></small>
+                            </div>
+                            <div id="selectedStocksList" class="mt-2 d-flex flex-wrap gap-2">
+                                <!-- Selected stocks will be shown here -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createWatchlist()">Create Watchlist</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this to your existing JavaScript section -->
+    <script>
+    // Global variables
+    const userPanel = document.querySelector('.user-panel');
+    const panelOverlay = document.querySelector('.panel-overlay');
+    const watchlistSection = document.querySelector('.watchlist-section');
+    const createWatchlistModal = new bootstrap.Modal(document.getElementById('createWatchlistModal'));
+    const middleSidebarTitle = document.getElementById('middleSidebarTitle');
+
+    // Function to hide all content sections
+    function hideAllContent() {
+        document.querySelectorAll('.dashboard-content, .watchlist-content, .portfolio-content, .market-content, .risk-content, .reports-content').forEach(section => {
+            section.style.display = 'none';
+        });
+    }
+
+    // Function to hide all sections in middle sidebar
+    function hideAllSections() {
+        document.querySelectorAll('.section-stats-card').forEach(card => card.style.display = 'none');
+        document.querySelectorAll('.watchlist-section, .market-section, .risk-section, .reports-section').forEach(section => section.style.display = 'none');
+    }
+
+    // Function to show dashboard
+    function showDashboard() {
+        hideAllSections();
+        hideAllContent();
+        document.getElementById('dashboardStats').style.display = 'block';
+        document.querySelector('.dashboard-content').style.display = 'block';
+        middleSidebarTitle.textContent = 'Quick Stats';
+        if (userPanel && panelOverlay) {
+            hideRightSidebar();
+        }
+        hideWatchlistForm();
+    }
+
+    // Function to show watchlist
+    function showWatchlist() {
+        hideAllSections();
+        hideAllContent();
+        document.getElementById('watchlistStats').style.display = 'block';
+        document.querySelector('.watchlist-section').style.display = 'block';
+        document.querySelector('.watchlist-content').style.display = 'block';
+        middleSidebarTitle.textContent = 'Watchlists';
+        if (userPanel && panelOverlay) {
+            hideRightSidebar();
+        }
+        hideWatchlistForm();
+    }
+
+    // Function to show market
+    function showMarket() {
+        hideAllSections();
+        hideAllContent();
+        document.getElementById('marketStats').style.display = 'block';
+        document.querySelector('.market-section').style.display = 'block';
+        document.querySelector('.market-content').style.display = 'block';
+        middleSidebarTitle.textContent = 'Market Overview';
+        if (userPanel && panelOverlay) {
+            hideRightSidebar();
+        }
+    }
+
+    // Function to show risk
+    function showRisk() {
+        hideAllSections();
+        hideAllContent();
+        document.getElementById('riskStats').style.display = 'block';
+        document.querySelector('.risk-section').style.display = 'block';
+        document.querySelector('.risk-content').style.display = 'block';
+        middleSidebarTitle.textContent = 'Risk Analysis';
+        if (userPanel && panelOverlay) {
+            hideRightSidebar();
+        }
+    }
+
+    // Function to show reports
+    function showReports() {
+        hideAllSections();
+        hideAllContent();
+        document.getElementById('reportsStats').style.display = 'block';
+        document.querySelector('.reports-section').style.display = 'block';
+        document.querySelector('.reports-content').style.display = 'block';
+        middleSidebarTitle.textContent = 'Reports';
+        if (userPanel && panelOverlay) {
+            hideRightSidebar();
+        }
+    }
+
+    // Function to show watchlist creation form
+    function showWatchlistForm() {
+        const form = document.querySelector('.watchlist-creation-form');
+        const list = document.querySelector('.watchlist-list');
+        if (form && list) {
+            form.style.display = 'block';
+            list.style.display = 'none';
+        }
+    }
+
+    // Function to hide watchlist creation form
+    function hideWatchlistForm() {
+        const form = document.querySelector('.watchlist-creation-form');
+        const list = document.querySelector('.watchlist-list');
+        if (form && list) {
+            form.style.display = 'none';
+            list.style.display = 'block';
+            const createForm = document.getElementById('createWatchlistForm');
+            if (createForm) {
+                createForm.reset();
+                document.getElementById('selectedStocks').innerHTML = '';
+            }
+        }
+    }
+
+    // Function to hide right sidebar
+    function hideRightSidebar() {
+        if (userPanel && panelOverlay) {
+            userPanel.classList.remove('active');
+            panelOverlay.classList.remove('active');
+        }
+    }
+
+    // Function to show right sidebar
+    function showRightSidebar() {
+        if (userPanel && panelOverlay) {
+            userPanel.classList.add('active');
+            panelOverlay.classList.add('active');
+        }
+    }
+
+    // Stock search functionality
+    let searchTimeout;
+    const stockItems = document.querySelectorAll('.stock-item');
+    const stockListContainer = document.querySelector('.stock-list-container');
+    const noResults = document.getElementById('noResults');
+    const searchLoading = document.getElementById('searchLoading');
+    const selectedStocksList = document.getElementById('selectedStocksList');
+    const stockSearch = document.getElementById('stockSearch');
+    const addStockBtn = document.getElementById('addStock');
+
+    // Function to handle stock item click
+    function handleStockItemClick(item) {
+        const checkbox = item.querySelector('.stock-checkbox');
+        checkbox.checked = !checkbox.checked;
+        const event = new Event('change');
+        checkbox.dispatchEvent(event);
+    }
+
+    // Add click handlers to stock items
+    stockItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            if (e.target !== this.querySelector('.stock-checkbox')) {
+                handleStockItemClick(this);
+            }
+        });
+    });
+
+    // Add keyboard navigation
+    stockSearch.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const visibleItems = Array.from(stockItems).filter(item => item.style.display !== 'none');
+            const currentIndex = visibleItems.findIndex(item => item === document.activeElement);
+            let nextIndex;
+
+            if (e.key === 'ArrowDown') {
+                nextIndex = currentIndex < visibleItems.length - 1 ? currentIndex + 1 : 0;
+            } else {
+                nextIndex = currentIndex > 0 ? currentIndex - 1 : visibleItems.length - 1;
+            }
+
+            visibleItems[nextIndex].focus();
+        } else if (e.key === 'Enter' && document.activeElement.classList.contains('stock-item')) {
+            e.preventDefault();
+            handleStockItemClick(document.activeElement);
+        }
+    });
+
+    stockSearch.addEventListener('input', function(e) {
+        const searchText = e.target.value.trim().toLowerCase();
+        
+        // Show container when user starts typing
+        if (searchText.length > 0) {
+            stockListContainer.style.display = 'block';
+            searchLoading.style.display = 'block';
+            noResults.style.display = 'none';
+        } else {
+            stockListContainer.style.display = 'none';
+            return;
+        }
+
+        // Clear previous timeout
+        clearTimeout(searchTimeout);
+        
+        // Add delay to prevent too many updates
+        searchTimeout = setTimeout(() => {
+            let visibleCount = 0;
+            
+            stockItems.forEach(item => {
+                const symbol = item.querySelector('strong').textContent.toLowerCase();
+                const name = item.querySelector('small').textContent.toLowerCase();
+                const sector = item.querySelector('.badge').textContent.toLowerCase();
+                
+                if (symbol.includes(searchText) || name.includes(searchText) || sector.includes(searchText)) {
+                    item.style.display = '';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Show/hide no results message
+            if (visibleCount === 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+            
+            searchLoading.style.display = 'none';
+        }, 300);
+    });
+
+    // Add stock button click handler
+    addStockBtn.addEventListener('click', function() {
+        const searchText = stockSearch.value.trim();
+        if (searchText.length > 0) {
+            const visibleItems = Array.from(stockItems).filter(item => item.style.display !== 'none');
+            if (visibleItems.length > 0) {
+                // Select the first visible item
+                handleStockItemClick(visibleItems[0]);
+                // Clear the search input
+                stockSearch.value = '';
+                stockListContainer.style.display = 'none';
+            }
+        }
+    });
+
+    // Update selected count and selected stocks list
+    document.querySelectorAll('.stock-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const selectedCount = document.querySelectorAll('.stock-checkbox:checked').length;
+            document.getElementById('selectedCount').textContent = selectedCount;
+            
+            // Update selected stocks list
+            updateSelectedStocksList();
+        });
+    });
+
+    // Function to update selected stocks list
+    function updateSelectedStocksList() {
+        selectedStocksList.innerHTML = '';
+        document.querySelectorAll('.stock-checkbox:checked').forEach(checkbox => {
+            const stockItem = checkbox.closest('.stock-item');
+            const symbol = stockItem.querySelector('strong').textContent;
+            const name = stockItem.querySelector('small').textContent;
+            
+            const stockTag = document.createElement('div');
+            stockTag.className = 'badge bg-primary d-flex align-items-center gap-2';
+            stockTag.innerHTML = `
+                ${symbol}
+                <button type="button" class="btn-close btn-close-white" onclick="removeStock('${checkbox.id}')"></button>
+            `;
+            selectedStocksList.appendChild(stockTag);
+        });
+    }
+
+    // Function to remove a stock
+    function removeStock(checkboxId) {
+        const checkbox = document.getElementById(checkboxId);
+        if (checkbox) {
+            checkbox.checked = false;
+            const event = new Event('change');
+            checkbox.dispatchEvent(event);
+        }
+    }
+
+    // Function to handle watchlist creation
+    function createWatchlist() {
+        const form = document.getElementById('createWatchlistForm');
+        const formData = new FormData(form);
+        
+        // Get all checked stock checkboxes
+        const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
+        formData.delete('stocks'); // Remove the original stocks field
+        selectedStocks.forEach(stockId => formData.append('stocks', stockId));
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createWatchlistModal'));
+                modal.hide();
+                
+                // Reset form
+                form.reset();
+                document.querySelectorAll('.stock-checkbox').forEach(cb => cb.checked = false);
+                document.getElementById('selectedCount').textContent = '0';
+                selectedStocksList.innerHTML = '';
+                
+                // Show success message
+                showAlert('success', data.message);
+                
+                // Show warning if there were duplicate stocks
+                if (data.warning) {
+                    showAlert('warning', data.warning);
+                }
+                
+                // Reload page to show new watchlist
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                // Handle form errors
+                if (data.error) {
+                    let errorMessage = '';
+                    for (const field in data.error) {
+                        errorMessage += `${field}: ${data.error[field].join(', ')}\n`;
+                    }
+                    showAlert('danger', errorMessage);
+                } else {
+                    showAlert('danger', 'Failed to create watchlist');
+                }
+            }
+        })
+        .catch(error => {
+            showAlert('danger', 'An error occurred while creating the watchlist');
+        });
+    }
+
+    // Function to show alerts
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Insert alert before the form
+        const form = document.getElementById('createWatchlistForm');
+        form.parentNode.insertBefore(alertDiv, form);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add click handlers to elements
+        const userPanelToggle = document.getElementById('userPanelToggle');
+        if (userPanelToggle) {
+            userPanelToggle.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                showRightSidebar();
+            };
+        }
+
+        // Handle sidebar links
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+            if (!link.classList.contains('user-toggle')) {
+                link.onclick = function(e) {
+                    e.preventDefault();
+                    const panel = this.getAttribute('data-panel');
+                    switch(panel) {
+                        case 'watchlist':
+                            showWatchlist();
+                            break;
+                        case 'market-insights':
+                            showMarket();
+                            break;
+                        case 'risk-analysis':
+                            showRisk();
+                            break;
+                        case 'reports':
+                            showReports();
+                            break;
+                        default:
+                            showDashboard();
+                    }
+                };
+            }
+        });
+
+        // Show dashboard by default
+        showDashboard();
+    });
+    </script>
+
+    <!-- Add just before the closing body tag -->
+    <script>
+        // Store and restore sidebar state
+        document.addEventListener('DOMContentLoaded', function() {
+            // Restore middle sidebar state on page load
+            const activePanelId = localStorage.getItem('activePanelId');
+            if (activePanelId) {
+                // Hide all panels first
+                document.querySelectorAll('.middle-sidebar-panel').forEach(panel => {
+                    panel.style.display = 'none';
+                });
+                
+                // Show the active panel
+                const activePanel = document.getElementById(activePanelId);
+                if (activePanel) {
+                    activePanel.style.display = 'block';
+                    
+                    // Update the header title based on the active panel
+                    const headerTitle = document.querySelector('.middle-sidebar-header h4');
+                    if (headerTitle) {
+                        headerTitle.textContent = activePanelId === 'userProfilePanel' ? 'User Profile' : 
+                                                 activePanelId === 'watchlistPanel' ? 'My Watchlists' : 
+                                                 'Dashboard';
+                    }
+                }
+            }
+            
+            // Add click handlers to navigation items that save the state
+            const navLinks = document.querySelectorAll('.nav-link[data-panel]');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const panelId = this.getAttribute('data-panel') + 'Panel';
+                    localStorage.setItem('activePanelId', panelId);
+                });
+            });
+        });
+        
+        // Function to handle watchlist click
+        function handleWatchlistClick(watchlistId, watchlistName) {
+            console.log('Watchlist clicked:', watchlistName, '(ID:', watchlistId, ')');
+            
+            // Always preserve the watchlist panel state when clicking on watchlist items
+            localStorage.setItem('activePanelId', 'watchlistPanel');
+            
+            // Navigate to the watchlist detail page
+            window.location.href = '/watchlist/' + watchlistId + '/';
+        }
+    </script>
+    
+    <!-- Add just before the closing body tag -->
+    <script>
+        // Universal watchlist click handler for any watchlist links added dynamically
+        document.addEventListener('DOMContentLoaded', function() {
+            // Log that the handler is active
+            console.log('Watchlist click handler initialized');
+            
+            // Use event delegation for handling clicks on all current and future watchlist items
+            document.addEventListener('click', function(e) {
+                // Find closest watchlist item link if clicked on a child element
+                const watchlistLink = e.target.closest('a.list-group-item[data-watchlist-id]');
+                
+                if (watchlistLink) {
+                    // Check if we're already showing the watchlist panel
+                    const currentPanelId = localStorage.getItem('activePanelId');
+                    if (currentPanelId !== 'watchlistPanel') {
+                        console.log('Forcing watchlist panel to be active (was:', currentPanelId, ')');
+                        localStorage.setItem('activePanelId', 'watchlistPanel');
+                    }
+                    
+                    // Let the default link behavior continue
+                    // The page will reload with the watchlist panel active
+                }
+            });
+            
+            // Extra check when page loads - if we're on a watchlist detail page, make sure the watchlist panel is active
+            if (window.location.pathname.includes('/watchlist/')) {
+                console.log('On watchlist page, ensuring watchlist panel is active');
+                localStorage.setItem('activePanelId', 'watchlistPanel');
+                
+                // Apply the change immediately if possible
+                const watchlistSection = document.querySelector('.watchlist-section');
+                if (watchlistSection) {
+                    const panels = document.querySelectorAll('.middle-sidebar-panel, .watchlist-section, .portfolio-section, .market-section, .risk-section, .reports-section');
+                    panels.forEach(panel => panel.style.display = 'none');
+                    watchlistSection.style.display = 'block';
+                    
+                    // Update header title
+                    const headerTitle = document.querySelector('.middle-sidebar-header h4');
+                    if (headerTitle) {
+                        headerTitle.textContent = 'My Watchlists';
+                    }
+                }
+            }
+        });
+    </script>
+
+    <!-- Main script for the app -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    <!-- Right sidebar script -->
+    <script src="{% static 'js/right_sidebar.js' %}"></script>
+    
+    <!-- Middle sidebar state management -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize middle sidebar panels
+            const initMiddleSidebar = function() {
+                // Get all middle sidebar panels
+                const panels = document.querySelectorAll('.middle-sidebar-panel, .watchlist-section, .portfolio-section, .market-section, .risk-section, .reports-section');
+                
+                if (panels.length === 0) return; // No panels found
+                
+                // Get active panel ID from localStorage
+                const activePanelId = localStorage.getItem('activePanelId');
+                
+                // Hide all panels first
+                panels.forEach(panel => {
+                    panel.style.display = 'none';
+                });
+                
+                // If we have a stored panel ID
+                if (activePanelId) {
+                    // Try to find that panel
+                    const activePanel = document.getElementById(activePanelId);
+                    if (activePanel) {
+                        activePanel.style.display = 'block';
+                        
+                        // Update header title
+                        updateHeaderTitle(activePanelId);
+                    } else {
+                        // If panel not found by ID, look for class-based sections
+                        const classMap = {
+                            'watchlistPanel': '.watchlist-section',
+                            'portfolioPanel': '.portfolio-section',
+                            'marketPanel': '.market-section',
+                            'riskPanel': '.risk-section',
+                            'reportsPanel': '.reports-section',
+                            'userProfilePanel': '#userProfilePanel'
+                        };
+                        
+                        const selector = classMap[activePanelId];
+                        if (selector) {
+                            const sectionPanel = document.querySelector(selector);
+                            if (sectionPanel) {
+                                sectionPanel.style.display = 'block';
+                                updateHeaderTitle(activePanelId);
+                            }
+                        }
+                    }
+                } else {
+                    // Default to showing first panel if no stored state
+                    const firstPanel = panels[0];
+                    firstPanel.style.display = 'block';
+                }
+            };
+            
+            // Function to update header title based on active panel
+            const updateHeaderTitle = function(panelId) {
+                const headerTitle = document.querySelector('.middle-sidebar-header h4');
+                if (!headerTitle) return;
+                
+                const titleMap = {
+                    'userProfilePanel': 'User Profile',
+                    'watchlistPanel': 'My Watchlists',
+                    'portfolioPanel': 'My Holdings',
+                    'marketPanel': 'Market Overview',
+                    'riskPanel': 'Risk Analysis',
+                    'reportsPanel': 'Reports'
+                };
+                
+                headerTitle.textContent = titleMap[panelId] || 'Dashboard';
+            };
+            
+            // Initialize on page load
+            initMiddleSidebar();
+            
+            // Add listeners to all watchlist links in the sidebar
+            const watchlistLinks = document.querySelectorAll('.middle-sidebar a[data-watchlist-id]');
+            watchlistLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Save the current active panel before navigating
+                    const middleSidebar = document.querySelector('.middle-sidebar');
+                    if (middleSidebar) {
+                        const activePanel = middleSidebar.querySelector('.middle-sidebar-panel[style*="display: block"], .watchlist-section[style*="display: block"], .portfolio-section[style*="display: block"], .market-section[style*="display: block"], .risk-section[style*="display: block"], .reports-section[style*="display: block"]');
+                        if (activePanel) {
+                            if (activePanel.id) {
+                                localStorage.setItem('activePanelId', activePanel.id);
+                            } else {
+                                // For class-based sections, map to appropriate panel ID
+                                const panelMap = {
+                                    'watchlist-section': 'watchlistPanel',
+                                    'portfolio-section': 'portfolioPanel',
+                                    'market-section': 'marketPanel',
+                                    'risk-section': 'riskPanel',
+                                    'reports-section': 'reportsPanel'
+                                };
+                                
+                                // Find which class this panel has
+                                for (const className in panelMap) {
+                                    if (activePanel.classList.contains(className)) {
+                                        localStorage.setItem('activePanelId', panelMap[className]);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+    <!-- Add this JavaScript at the end of the file before the closing body tag: -->
+    <script>
+    function loadWatchlistContent(event, watchlistId) {
+        event.preventDefault();
+        
+        // Store active panel ID
+        localStorage.setItem('activePanelId', 'watchlistPanel');
+        
+        // Get the URL from the clicked element
+        const url = event.currentTarget.getAttribute('data-watchlist-url');
+        
+        // Update active state in sidebar
+        document.querySelectorAll('.watchlist-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        event.currentTarget.classList.add('active');
+        
+        // Load content via AJAX
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Update main content
+            document.getElementById('mainContentWrapper').innerHTML = html;
+            
+            // Update the URL without reloading the page
+            history.pushState({watchlistId: watchlistId}, '', url);
+        })
+        .catch(error => {
+            console.error('Error loading watchlist content:', error);
+        });
+        
+        return false;
+    }
+    </script>
+
+</body>
+</html> 

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reports - Stock Portfolio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Performance History -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Portfolio Performance History</h5>
+                </div>
+                <div class="card-body">
+                    {% if performance_history %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Total Value</th>
+                                        <th>Daily Change</th>
+                                        <th>Daily Change %</th>
+                                        <th>YTD Return</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for performance in performance_history %}
+                                    <tr>
+                                        <td>{{ performance.date|date:"M d, Y" }}</td>
+                                        <td>${{ performance.total_value|floatformat:2 }}</td>
+                                        <td class="{% if performance.daily_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            ${{ performance.daily_change|floatformat:2 }}
+                                        </td>
+                                        <td class="{% if performance.daily_change_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            {{ performance.daily_change_percentage|floatformat:2 }}%
+                                        </td>
+                                        <td class="{% if performance.ytd_return >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            {{ performance.ytd_return|floatformat:2 }}%
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No performance history available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Transaction History</h5>
+                </div>
+                <div class="card-body">
+                    {% if transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Stock</th>
+                                        <th>Type</th>
+                                        <th>Shares</th>
+                                        <th>Price</th>
+                                        <th>Total Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                    <tr>
+                                        <td>{{ transaction.date|date:"M d, Y" }}</td>
+                                        <td>{{ transaction.stock.symbol }}</td>
+                                        <td>
+                                            {% if transaction.transaction_type == 'BUY' %}
+                                                <span class="badge bg-success">Buy</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Sell</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ transaction.shares }}</td>
+                                        <td>${{ transaction.price|floatformat:2 }}</td>
+                                        <td>${{ transaction.total_amount|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No transaction history available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add any interactive features here
+    // For example, sorting tables, filtering, etc.
+});
+</script>
+{% endblock %} 

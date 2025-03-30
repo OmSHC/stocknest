@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ watchlist.name }} - Watchlist Details{% endblock %}
+
+{% block content %}
+{% include 'dashboard/watchlist_detail_content.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Functions for watchlist management
+    function editWatchlist(watchlistId) {
+        console.log('Edit watchlist:', watchlistId);
+        // Implement edit functionality
+    }
+    
+    function deleteWatchlist(watchlistId) {
+        if (confirm('Are you sure you want to delete this watchlist?')) {
+            console.log('Delete watchlist:', watchlistId);
+            // Implement delete functionality
+            // window.location.href = '/dashboard/watchlist/';
+        }
+    }
+    
+    function subscribeWatchlist(watchlistId) {
+        console.log('Subscribe to watchlist:', watchlistId);
+        // Implement subscribe functionality
+    }
+    
+    function unsubscribeWatchlist(watchlistId) {
+        if (confirm('Are you sure you want to unsubscribe from this watchlist?')) {
+            console.log('Unsubscribe from watchlist:', watchlistId);
+            // Implement unsubscribe functionality
+        }
+    }
+    
+    function viewStockDetails(symbol) {
+        console.log('View stock details:', symbol);
+        // Implement stock details view
+    }
+    
+    function removeStock(watchlistId, symbol) {
+        if (confirm(`Are you sure you want to remove ${symbol} from this watchlist?`)) {
+            console.log('Remove stock:', symbol, 'from watchlist:', watchlistId);
+            // Implement stock removal
+        }
+    }
+    
+    // Stock search functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const stockSearch = document.getElementById('stockSearch');
+        const searchResults = document.getElementById('stockSearchResults');
+        const addSelectedBtn = document.getElementById('addSelectedStocks');
+        
+        if (stockSearch) {
+            stockSearch.addEventListener('input', function() {
+                const query = this.value.trim();
+                if (query.length < 2) {
+                    searchResults.innerHTML = '';
+                    return;
+                }
+                
+                // Search for stocks
+                fetch(`/dashboard/api/search-stocks/?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        searchResults.innerHTML = '';
+                        data.results.forEach(stock => {
+                            const item = document.createElement('div');
+                            item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-dark text-light';
+                            item.innerHTML = `
+                                <div>
+                                    <strong>${stock.symbol}</strong> - ${stock.name}
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input stock-checkbox" type="checkbox" value="${stock.symbol}" id="stock-${stock.symbol}">
+                                </div>
+                            `;
+                            searchResults.appendChild(item);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error searching stocks:', error);
+                        searchResults.innerHTML = '<div class="alert alert-danger">Error searching stocks</div>';
+                    });
+            });
+        }
+        
+        if (addSelectedBtn) {
+            addSelectedBtn.addEventListener('click', function() {
+                const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
+                if (selectedStocks.length === 0) {
+                    alert('Please select at least one stock to add.');
+                    return;
+                }
+                
+                console.log('Add stocks to watchlist:', selectedStocks);
+                // Implement adding stocks to watchlist
+            });
+        }
+    });
+</script>
+{% endblock %} 

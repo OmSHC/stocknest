@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Portfolio - Stock Portfolio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Portfolio Holdings</h5>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Name</th>
+                                    <th>Shares</th>
+                                    <th>Average Cost</th>
+                                    <th>Current Price</th>
+                                    <th>Total Value</th>
+                                    <th>Total Return</th>
+                                    <th>Return %</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for holding in holdings %}
+                                <tr>
+                                    <td>{{ holding.stock.symbol }}</td>
+                                    <td>{{ holding.stock.name }}</td>
+                                    <td>{{ holding.shares }}</td>
+                                    <td>${{ holding.average_cost|floatformat:2 }}</td>
+                                    <td>${{ holding.stock.current_price|floatformat:2 }}</td>
+                                    <td>${{ holding.current_value|floatformat:2 }}</td>
+                                    <td class="{% if holding.total_return >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        ${{ holding.total_return|floatformat:2 }}
+                                    </td>
+                                    <td class="{% if holding.return_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ holding.return_percentage|floatformat:2 }}%
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewStock('{{ holding.stock.symbol }}')">
+                                            <i class="fas fa-chart-line"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success" onclick="buyStock('{{ holding.stock.symbol }}')">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="sellStock('{{ holding.stock.symbol }}')">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center">No stocks in your portfolio. Start investing to build your portfolio!</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-primary">
+                                    <td colspan="5" class="text-end"><strong>Total Portfolio Value:</strong></td>
+                                    <td><strong>${{ portfolio.total_value|floatformat:2 }}</strong></td>
+                                    <td class="{% if portfolio.total_return >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        <strong>${{ portfolio.total_return|floatformat:2 }}</strong>
+                                    </td>
+                                    <td class="{% if portfolio.return_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        <strong>{{ portfolio.return_percentage|floatformat:2 }}%</strong>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Buy Stock Modal -->
+<div class="modal fade" id="buyStockModal" tabindex="-1" aria-labelledby="buyStockModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="buyStockModalLabel">Buy Stock</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="buyStockForm" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="buy">
+                    <input type="hidden" name="symbol" id="buyStockSymbol">
+                    <div class="mb-3">
+                        <label for="buyShares" class="form-label">Number of Shares</label>
+                        <input type="number" class="form-control" id="buyShares" name="shares" min="1" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="buyStockForm" class="btn btn-success">Buy Stock</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sell Stock Modal -->
+<div class="modal fade" id="sellStockModal" tabindex="-1" aria-labelledby="sellStockModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sellStockModalLabel">Sell Stock</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="sellStockForm" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="sell">
+                    <input type="hidden" name="symbol" id="sellStockSymbol">
+                    <div class="mb-3">
+                        <label for="sellShares" class="form-label">Number of Shares</label>
+                        <input type="number" class="form-control" id="sellShares" name="shares" min="1" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="sellStockForm" class="btn btn-danger">Sell Stock</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function viewStock(symbol) {
+    // Implement stock detail view
+    console.log('Viewing stock:', symbol);
+}
+
+function buyStock(symbol) {
+    document.getElementById('buyStockSymbol').value = symbol;
+    new bootstrap.Modal(document.getElementById('buyStockModal')).show();
+}
+
+function sellStock(symbol) {
+    document.getElementById('sellStockSymbol').value = symbol;
+    new bootstrap.Modal(document.getElementById('sellStockModal')).show();
+}
+
+// Form submission handlers
+document.getElementById('buyStockForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const symbol = document.getElementById('buyStockSymbol').value;
+    const shares = document.getElementById('buyShares').value;
+    console.log('Buying stock:', symbol, 'shares:', shares);
+    this.submit();
+});
+
+document.getElementById('sellStockForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const symbol = document.getElementById('sellStockSymbol').value;
+    const shares = document.getElementById('sellShares').value;
+    console.log('Selling stock:', symbol, 'shares:', shares);
+    this.submit();
+});
+</script>
+{% endblock %} 
