@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create New Watchlist{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-dark text-light">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus text-primary me-2"></i>Create New Watchlist
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{% url 'dashboard:create_watchlist' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="watchlistName" class="form-label">Watchlist Name</label>
+                            <input type="text" class="form-control bg-dark text-light" id="watchlistName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="watchlistDescription" class="form-label">Description</label>
+                            <textarea class="form-control bg-dark text-light" id="watchlistDescription" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="watchlistVisibility" class="form-label">Visibility</label>
+                            <select class="form-select bg-dark text-light" id="watchlistVisibility" name="visibility">
+                                <option value="private">Private</option>
+                                <option value="public">Public</option>
+                            </select>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Create Watchlist
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

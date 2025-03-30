@@ -185,74 +185,15 @@ def dashboard(request):
 
 @login_required
 def watchlist(request):
-    print("\n=== WATCHLIST VIEW DEBUG LOGS ===")
-    print(f"1. Request method: {request.method}")
-    print(f"2. Current user: {request.user.username}")
-    print(f"3. User ID: {request.user.id}")
-    print(f"4. User is authenticated: {request.user.is_authenticated}")
-    print(f"5. User email: {request.user.email}")
-    
-    # Debug user's related watchlists
-    print("\n=== USER WATCHLISTS DEBUG ===")
-    created_watchlists = Watchlist.objects.filter(created_by=request.user)
-    print(f"6. Direct query created_watchlists count: {created_watchlists.count()}")
-    print("7. Created watchlists details:")
-    for w in created_watchlists:
-        print(f"   - ID: {w.id}")
-        print(f"   - Name: {w.name}")
-    
-    # Debug related name query
-    print("\n=== RELATED NAME QUERY DEBUG ===")
-    try:
-        related_watchlists = request.user.created_watchlists.all()
-        print(f"8. Related name query count: {related_watchlists.count()}")
-        print("9. Related watchlists details:")
-        for w in related_watchlists:
-            print(f"   - ID: {w.id}")
-            print(f"   - Name: {w.name}")
-    except Exception as e:
-        print(f"10. Error accessing related watchlists: {str(e)}")
-    
     # Get user's personal watchlists
     personal_watchlists = Watchlist.objects.filter(
         created_by=request.user,
         is_global=False
     ).prefetch_related('stocks')
     
-    print("\n=== PERSONAL WATCHLISTS QUERY DEBUG ===")
-    print(f"11. Query SQL: {personal_watchlists.query}")
-    print(f"12. Number of watchlists found: {personal_watchlists.count()}")
-    
-    # Force evaluation of queryset
-    watchlist_list = list(personal_watchlists)
-    print("\n13. Watchlist List Details:")
-    for w in watchlist_list:
-        print(f"   - Name: {w.name}")
-        print(f"   - ID: {w.id}")
-        print(f"   - Created by: {w.created_by.username if w.created_by else 'None'}")
-        print(f"   - Number of stocks: {w.stocks.count()}")
-        print(f"   - Created at: {w.created_at}")
-        print(f"   - Updated at: {w.updated_at}")
-        print("   - Stocks:")
-        stocks_list = list(w.stocks.all())
-        for stock in stocks_list:
-            print(f"     - {stock.symbol}: {stock.name}")
-    
-    # Get all stocks for the search functionality
-    stocks = Stock.objects.all().order_by('symbol')
-    
     context = {
         'personal_watchlists': personal_watchlists,
-        'stocks': stocks
     }
-    
-    print("\n=== CONTEXT DEBUG ===")
-    print(f"14. Context personal_watchlists count: {len(personal_watchlists)}")
-    print("15. Context personal_watchlists details:")
-    for w in context['personal_watchlists']:
-        print(f"   - ID: {w.id}")
-        print(f"   - Name: {w.name}")
-        print(f"   - Created by: {w.created_by.username}")
     
     return render(request, 'dashboard/watchlist.html', context)
 
@@ -542,12 +483,19 @@ def update_chart_data(request):
 @login_required
 def search_stocks(request):
     query = request.GET.get('q', '')
+    print(f"Search query received: {query}")
+    
     if len(query) < 2:
+        print("Query too short, returning empty results")
         return JsonResponse({'results': []})
     
     stocks = Stock.objects.filter(
         symbol__icontains=query
     )[:5]
+    
+    print(f"Found {stocks.count()} matching stocks")
+    for stock in stocks:
+        print(f"Stock: {stock.symbol} - {stock.name}")
     
     results = [{
         'symbol': stock.symbol,
@@ -555,6 +503,7 @@ def search_stocks(request):
         'price': float(stock.current_price)
     } for stock in stocks]
     
+    print(f"Returning results: {results}")
     return JsonResponse({'results': results})
 
 def login_view(request):
@@ -589,57 +538,76 @@ def watchlist_detail(request, watchlist_id):
 
 @login_required
 def create_watchlist(request):
-    print("DEBUG: Create watchlist view called")
-    
     if request.method == 'POST':
         try:
             name = request.POST.get('name')
-            description = request.POST.get('description', '')
-            is_global = request.POST.get('visibility') == 'public'
-            stock_ids = request.POST.getlist('stocks')
-            
-            print(f"DEBUG: Creating watchlist - Name: {name}, Description: {description}, Global: {is_global}, Stocks: {stock_ids}")
+            description = request.POST.get('description')
+            visibility = request.POST.get('visibility', 'private')
             
             if not name:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Watchlist name is required'
-                }, status=400)
+                messages.error(request, 'Watchlist name is required')
+                return render(request, 'dashboard/create_watchlist.html')
             
             # Create the watchlist
             watchlist = Watchlist.objects.create(
                 name=name,
                 description=description,
-                is_global=is_global,
-                created_by=request.user
+                created_by=request.user,
+                is_global=(visibility == 'public')
             )
             
-            print(f"DEBUG: Watchlist created successfully with ID: {watchlist.id}")
-            
-            # Add stocks if any were selected
-            if stock_ids:
-                stocks = Stock.objects.filter(id__in=stock_ids)
-                watchlist.stocks.set(stocks)
-                print(f"DEBUG: Added {len(stock_ids)} stocks to watchlist")
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Watchlist created successfully',
-                'watchlist_id': watchlist.id
-            })
+            messages.success(request, 'Watchlist created successfully')
+            return redirect('dashboard:watchlist_detail', watchlist_id=watchlist.id)
             
         except Exception as e:
-            print(f"DEBUG: Error creating watchlist: {str(e)}")
-            print(traceback.format_exc())
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            }, status=500)
+            logger.error(f"Error creating watchlist: {str(e)}")
+            messages.error(request, 'Error creating watchlist')
+            return render(request, 'dashboard/create_watchlist.html')
     
-    return JsonResponse({
-        'success': False,
-        'error': 'Invalid request method'
-    }, status=400)
+    # If it's a GET request, show the create form
+    template = 'dashboard/create_watchlist_content.html' if request.headers.get('X-Requested-With') == 'XMLHttpRequest' else 'dashboard/create_watchlist.html'
+    return render(request, template)
+
+@login_required
+def create_watchlist_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        name = data.get('name')
+        description = data.get('description')
+        visibility = data.get('visibility', 'private')
+        
+        if not name:
+            return JsonResponse({'error': 'Watchlist name is required'}, status=400)
+        
+        # Create the watchlist
+        watchlist = Watchlist.objects.create(
+            name=name,
+            description=description,
+            created_by=request.user,
+            is_global=(visibility == 'public')
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Watchlist created successfully',
+            'watchlist': {
+                'id': watchlist.id,
+                'name': watchlist.name,
+                'description': watchlist.description,
+                'is_global': watchlist.is_global,
+                'created_at': watchlist.created_at,
+                'updated_at': watchlist.updated_at
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        logger.error(f"Error creating watchlist: {str(e)}")
+        return JsonResponse({'error': 'Error creating watchlist'}, status=500)
 
 @login_required
 def get_watchlists(request):

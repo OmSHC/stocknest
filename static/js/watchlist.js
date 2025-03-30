@@ -12,11 +12,12 @@ class WatchlistManager {
         this.searchLoading = document.getElementById('searchLoading');
         this.addStockBtn = document.getElementById('addStock');
         this.createWatchlistForm = document.getElementById('createWatchlistForm');
-        this.createWatchlistModal = document.getElementById('createWatchlistModal');
         this.watchlistDetailsContainer = document.getElementById('watchlistDetails');
         this.watchlistDetailsContent = document.getElementById('watchlistDetailsContent');
         this.watchlistDetailsName = document.getElementById('watchlistDetailsName');
         this.watchlistDetailsLoading = document.getElementById('watchlistDetailsLoading');
+        this.watchlistsContainer = document.getElementById('watchlistsContainer');
+        this.createWatchlistFormContainer = document.getElementById('createWatchlistFormContainer');
 
         // State
         this.selectedStocks = new Set();
@@ -54,18 +55,15 @@ class WatchlistManager {
             this.stockSearch.addEventListener('keydown', (e) => this.handleKeyboardNavigation(e));
         }
 
-        // Modal events
-        if (this.createWatchlistModal) {
-            this.createWatchlistModal.addEventListener('hidden.bs.modal', () => this.resetForm());
+        // Create watchlist form submission - allow normal form submission
+        if (this.createWatchlistForm && this.createWatchlistForm.classList.contains('ajax-form')) {
+            this.createWatchlistForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.createWatchlist();
+            });
         }
 
-        // Create watchlist button
-        const createWatchlistButton = document.getElementById('createWatchlistButton');
-        if (createWatchlistButton) {
-            createWatchlistButton.addEventListener('click', () => this.createWatchlist());
-        }
-
-        // Watchlist name clicks - Use direct approach instead of querySelectorAll to ensure it works
+        // Watchlist name clicks
         const watchlistNames = document.querySelectorAll('.watchlist-name');
         console.log('Binding click events to', watchlistNames.length, 'watchlist names');
         
@@ -76,18 +74,6 @@ class WatchlistManager {
                 console.log('Watchlist name clicked:', name.textContent.trim(), 'ID:', watchlistId);
                 this.loadWatchlistDetails(watchlistId);
             });
-        });
-        
-        // Add a manual handler for the document in case the above doesn't work
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('watchlist-name') || 
-                e.target.closest('.watchlist-name')) {
-                const nameElement = e.target.classList.contains('watchlist-name') ? 
-                    e.target : e.target.closest('.watchlist-name');
-                const watchlistId = nameElement.getAttribute('data-watchlist-id');
-                console.log('Watchlist name clicked (document handler):', nameElement.textContent.trim(), 'ID:', watchlistId);
-                this.loadWatchlistDetails(watchlistId);
-            }
         });
     }
 
@@ -182,11 +168,33 @@ class WatchlistManager {
         }
     }
 
+    showCreateWatchlistForm() {
+        // Allow default navigation behavior by not manipulating the display
+        return true;
+    }
+
+    hideCreateWatchlistForm() {
+        if (this.createWatchlistFormContainer) {
+            this.createWatchlistFormContainer.style.display = 'none';
+            if (this.watchlistsContainer) {
+                this.watchlistsContainer.style.display = 'block';
+            }
+        }
+    }
+
+    hideWatchlistDetails() {
+        if (this.watchlistDetailsContainer) {
+            this.watchlistDetailsContainer.style.display = 'none';
+            if (this.watchlistsContainer) {
+                this.watchlistsContainer.style.display = 'block';
+            }
+        }
+    }
+
     async createWatchlist() {
         const name = document.getElementById('watchlistName').value;
         const description = document.getElementById('watchlistDescription').value;
-        const visibility = document.querySelector('input[name="visibility"]:checked')?.value || 'private';
-        const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
+        const visibility = document.getElementById('watchlistVisibility').value;
         
         if (!name) {
             this.showAlert('danger', 'Watchlist name is required');
@@ -194,7 +202,7 @@ class WatchlistManager {
         }
         
         // Show loading state on the submit button
-        const submitButton = document.querySelector('#createWatchlistButton');
+        const submitButton = document.querySelector('#createWatchlistForm button[type="submit"]');
         const originalText = submitButton.innerHTML;
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
@@ -205,9 +213,8 @@ class WatchlistManager {
             formData.append('name', name);
             formData.append('description', description);
             formData.append('visibility', visibility);
-            selectedStocks.forEach(stockId => formData.append('stocks', stockId));
             
-            const response = await fetch('/api/watchlists/create/', {
+            const response = await fetch('/dashboard/watchlist/create/', {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
@@ -215,25 +222,20 @@ class WatchlistManager {
                 body: formData
             });
 
-            const data = await response.json();
-            console.log('Create watchlist response:', data);
-            
-            if (data.success) {
-                // Close the modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('createWatchlistModal'));
-                if (modal) {
-                    modal.hide();
-                }
-                
+            if (response.ok) {
                 // Reset form
                 this.resetForm();
                 
                 // Show success message
                 this.showAlert('success', 'Watchlist created successfully');
                 
-                // Reload watchlists
-                this.loadWatchlists();
+                // Hide the form and show the watchlists
+                this.hideCreateWatchlistForm();
+                
+                // Reload the page to show the new watchlist
+                window.location.reload();
             } else {
+                const data = await response.json();
                 this.showAlert('danger', data.error || 'Error creating watchlist');
             }
         } catch (error) {
@@ -247,7 +249,9 @@ class WatchlistManager {
     }
 
     resetForm() {
-        this.createWatchlistForm.reset();
+        if (this.createWatchlistForm) {
+            this.createWatchlistForm.reset();
+        }
         this.selectedStocks.clear();
         this.updateSelectedCount();
         this.updateSelectedStocksList();
@@ -265,11 +269,13 @@ class WatchlistManager {
         `;
         
         const container = document.querySelector('.container-fluid');
-        container.insertBefore(alertDiv, container.firstChild);
-        
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
+        if (container) {
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
     }
 
     // Additional methods for watchlist management

@@ -110,4 +110,61 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Handle create watchlist links
+    document.querySelectorAll('a[href*="create_watchlist"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Get the URL from the clicked element
+            const url = e.currentTarget.getAttribute('href');
+            
+            // Load content via AJAX
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Update main content
+                document.getElementById('mainContentWrapper').innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error loading create watchlist form:', error);
+            });
+            
+            return false; // Prevent any default navigation
+        });
+    });
+
+    // Handle refresh button clicks
+    document.addEventListener('click', function(e) {
+        const refreshButton = e.target.closest('.btn-refresh');
+        if (refreshButton) {
+            e.preventDefault();
+            
+            // Get the current page URL without any parameters
+            const currentPath = window.location.pathname;
+            
+            // If we're on the create watchlist page, don't refresh
+            if (currentPath.includes('create_watchlist')) {
+                return;
+            }
+            
+            // Otherwise refresh the current page content
+            fetch(currentPath, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('mainContentWrapper').innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error refreshing content:', error);
+            });
+        }
+    });
 }); 

@@ -920,9 +920,9 @@
                         <i class="fas fa-user-circle text-primary me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">User Profile</h5>
                     </div>
-                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn">
-                        <i class="fas fa-user-edit me-2"></i>Edit Profile
-                    </button>
+                    <a href="{% url 'dashboard:create_watchlist' %}" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Watchlist
+                    </a>
                 </div>
                 
                 <div class="watchlist-group mb-4">
@@ -1019,9 +1019,12 @@
                         <i class="fas fa-star text-warning me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">My Watchlists</h5>
                     </div>
-                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn" data-bs-toggle="modal" data-bs-target="#createWatchlistModal">
+                    <a href="javascript:void(0)" 
+                       class="btn btn-primary btn-sm w-100"
+                       data-watchlist-url="{% url 'dashboard:create_watchlist' %}"
+                       onclick="loadWatchlistContent(event)">
                         <i class="fas fa-plus-circle me-2"></i>Create New Watchlist
-                    </button>
+                    </a>
                 </div>
                 
                 <div class="watchlist-group mb-4">
@@ -1095,9 +1098,9 @@
                         <i class="fas fa-briefcase text-primary me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">My Holdings</h5>
                     </div>
-                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn">
+                    <a href="{% url 'dashboard:create_watchlist' %}" class="btn btn-primary btn-sm w-100">
                         <i class="fas fa-plus-circle me-2"></i>Add New Stock
-                    </button>
+                    </a>
                 </div>
                 
                 <div class="watchlist-group mb-4">
@@ -1143,9 +1146,9 @@
                         <i class="fas fa-chart-line text-success me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">Market Overview</h5>
                     </div>
-                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn">
+                    <a href="{% url 'dashboard:create_watchlist' %}" class="btn btn-primary btn-sm w-100">
                         <i class="fas fa-sync me-2"></i>Refresh Data
-                    </button>
+                    </a>
                 </div>
                 
                 <div class="watchlist-group mb-4">
@@ -1191,9 +1194,9 @@
                         <i class="fas fa-shield-alt text-warning me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">Risk Analysis</h5>
                     </div>
-                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn">
+                    <a href="{% url 'dashboard:create_watchlist' %}" class="btn btn-primary btn-sm w-100">
                         <i class="fas fa-sync me-2"></i>Update Analysis
-                    </button>
+                    </a>
                 </div>
                 
                 <div class="watchlist-group mb-4">
@@ -1239,9 +1242,9 @@
                         <i class="fas fa-file-alt text-info me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">Reports</h5>
                     </div>
-                    <button class="btn btn-primary btn-sm w-100 create-watchlist-btn">
+                    <a href="{% url 'dashboard:create_watchlist' %}" class="btn btn-primary btn-sm w-100">
                         <i class="fas fa-plus-circle me-2"></i>New Report
-                    </button>
+                    </a>
                 </div>
                 
                 <div class="watchlist-group mb-4">
@@ -1592,7 +1595,6 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <!-- Custom JS -->
-    <script src="{% static 'js/right_sidebar.js' %}" defer></script>
     <script src="{% static 'js/main.js' %}" defer></script>
     <!-- AdSense Initialization -->
     <script>
@@ -2283,6 +2285,11 @@
     <!-- Add this JavaScript at the end of the file before the closing body tag: -->
     <script>
     function loadWatchlistContent(event, watchlistId) {
+        // Check if this is a create watchlist link
+        if (event.currentTarget.href.includes('create_watchlist')) {
+            return true; // Allow normal navigation
+        }
+        
         event.preventDefault();
         
         // Store active panel ID

@@ -6,47 +6,19 @@
 {% block content %}
 <div class="container-fluid">
     <div class="row">
+        <!-- Main Content Area -->
         <div class="col-12">
+            <!-- Watchlists List -->
             <div class="card bg-dark text-light">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">
-                        <i class="fas fa-star text-warning me-2"></i>Watchlists
+                        <i class="fas fa-star text-warning me-2"></i>My Watchlists
                     </h4>
+                    <a href="{% url 'dashboard:create_watchlist' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create New Watchlist
+                    </a>
                 </div>
                 <div class="card-body">
-                    <!-- Create Watchlist Form in Main Content -->
-                    <div id="createWatchlistFormContainer" class="container-fluid mt-4">
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="card bg-dark text-light">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">Create New Watchlist</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <form id="createWatchlistForm" method="POST" action="{% url 'dashboard:create_watchlist' %}">
-                                            {% csrf_token %}
-                                            <div class="mb-3">
-                                                <label for="watchlistName" class="form-label">Watchlist Name</label>
-                                                <input type="text" class="form-control" id="watchlistName" name="name" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="watchlistDescription" class="form-label">Description</label>
-                                                <textarea class="form-control" id="watchlistDescription" name="description" rows="3"></textarea>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="watchlistVisibility" class="form-label">Visibility</label>
-                                                <select class="form-select" id="watchlistVisibility" name="visibility">
-                                                    <option value="private">Private</option>
-                                                    <option value="public">Public</option>
-                                                </select>
-                                            </div>
-                                            <button type="submit" class="btn btn-primary">Create Watchlist</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <!-- Personal Watchlists -->
                     <div class="mb-4">
                         <h5 class="text-light mb-3">Created By Me</h5>
@@ -58,11 +30,8 @@
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <h6 class="card-title text-light mb-0">
                                                 <i class="fas fa-list text-primary me-2"></i>
-                                                <a href="javascript:void(0)" 
-                                                   class="watchlist-name text-light text-decoration-none" 
-                                                   data-watchlist-id="{{ watchlist.id }}" 
-                                                   onclick="handleWatchlistClick({{ watchlist.id }}, '{{ watchlist.name }}')"
-                                                   style="cursor: pointer; border-bottom: 1px dashed #ddd;">
+                                                <a href="{% url 'dashboard:watchlist_detail' watchlist.id %}" 
+                                                   class="watchlist-name text-light text-decoration-none">
                                                     {{ watchlist.name }}
                                                 </a>
                                             </h6>
@@ -77,12 +46,15 @@
                                                 <a href="{% url 'dashboard:watchlist_detail' watchlist.id %}" class="btn btn-sm btn-outline-light" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <button class="btn btn-sm btn-outline-light" onclick="watchlistManager.editWatchlist({{ watchlist.id }})" title="Edit">
+                                                <a href="{% url 'dashboard:edit_watchlist' watchlist.id %}" class="btn btn-sm btn-outline-light" title="Edit">
                                                     <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="watchlistManager.deleteWatchlist({{ watchlist.id }})" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                </a>
+                                                <form method="POST" action="{% url 'dashboard:delete_watchlist' watchlist.id %}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this watchlist?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     </div>
@@ -92,7 +64,7 @@
                             <div class="col-12">
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle me-2"></i>
-                                    You haven't created any watchlists yet. Click the "Create New Watchlist" button to get started!
+                                    You haven't created any watchlists yet. Click "Create New Watchlist" to get started!
                                 </div>
                             </div>
                             {% endfor %}
@@ -111,212 +83,8 @@
         </div>
     </div>
 </div>
-
-<!-- Main content area for watchlist details -->
-<div id="watchlistDetails" class="container-fluid mt-4" style="display: none;">
-    <div class="row">
-        <div class="col-12">
-            <div class="card bg-dark text-light">
-                <div class="card-header d-flex justify-content-between align-items-center" id="watchlistDetailsHeader">
-                    <h4 class="mb-0" id="watchlistDetailsName"></h4>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('watchlistDetails').style.display = 'none';">
-                        <i class="fas fa-times"></i> Close
-                    </button>
-                </div>
-                <div class="card-body" id="watchlistDetailsContent">
-                    <!-- Watchlist details will be loaded here -->
-                    <div class="text-center" id="watchlistDetailsLoading">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2">Loading watchlist details...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/watchlist.js' %}"></script>
-<script>
-    // DIRECT IMPLEMENTATION - no dependencies on other code
-    function handleWatchlistClick(watchlistId, watchlistName) {
-        console.log('Watchlist clicked:', watchlistName, '(ID:', watchlistId, ')');
-        
-        // Get references to DOM elements
-        const detailsContainer = document.getElementById('watchlistDetails');
-        const detailsName = document.getElementById('watchlistDetailsName');
-        const detailsContent = document.getElementById('watchlistDetailsContent');
-        const loadingIndicator = document.getElementById('watchlistDetailsLoading');
-        
-        // Check if all elements exist
-        if (!detailsContainer || !detailsName || !detailsContent || !loadingIndicator) {
-            console.error('Required DOM elements not found');
-            alert('Error: Required elements not found');
-            return;
-        }
-        
-        // Show the container and set the name
-        detailsContainer.style.display = 'block';
-        detailsName.textContent = watchlistName;
-        detailsContent.innerHTML = '';
-        loadingIndicator.style.display = 'block';
-        
-        // Scroll to show the details
-        detailsContainer.scrollIntoView({ behavior: 'smooth' });
-        
-        // Fetch the watchlist details
-        fetch(`/dashboard/watchlist/${watchlistId}/`, {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            console.log('Response received:', response.status);
-            
-            // Check content type to determine how to process
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            } else {
-                return response.text();
-            }
-        })
-        .then(data => {
-            // Hide loading indicator
-            loadingIndicator.style.display = 'none';
-            
-            if (typeof data === 'object') {
-                // Handle JSON response
-                renderWatchlistContent(detailsContent, data, watchlistId);
-            } else {
-                // Handle HTML response
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(data, 'text/html');
-                
-                const bodyContent = doc.querySelector('.card-body');
-                if (bodyContent) {
-                    detailsContent.innerHTML = bodyContent.innerHTML;
-                } else {
-                    detailsContent.innerHTML = '<div class="alert alert-warning">Content could not be loaded correctly.</div>';
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error loading watchlist details:', error);
-            loadingIndicator.style.display = 'none';
-            detailsContent.innerHTML = `
-                <div class="alert alert-danger">
-                    Error loading watchlist details. Please try again later.
-                </div>
-            `;
-        });
-    }
-    
-    // Helper function to render watchlist content from JSON data
-    function renderWatchlistContent(container, data, watchlistId) {
-        let content = '';
-        
-        if (data.description) {
-            content += `<p class="text-muted">${data.description}</p>`;
-        }
-        
-        content += `
-            <div class="row mt-4">
-                <div class="col-12">
-                    <h5 class="text-light mb-3">Stocks in Watchlist</h5>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Symbol</th>
-                                    <th>Name</th>
-                                    <th>Current Price</th>
-                                    <th>Change</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-        `;
-        
-        if (data.stocks && data.stocks.length > 0) {
-            data.stocks.forEach(stock => {
-                content += `
-                    <tr>
-                        <td>${stock.symbol}</td>
-                        <td>${stock.name}</td>
-                        <td>${stock.current_price || 'N/A'}</td>
-                        <td>
-                            <span class="${stock.change >= 0 ? 'text-success' : 'text-danger'}">
-                                ${stock.change_percentage ? stock.change_percentage.toFixed(2) + '%' : 'N/A'}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-light" onclick="viewStockDetails('${stock.symbol}')">
-                                <i class="fas fa-chart-line"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-        } else {
-            content += `
-                <tr>
-                    <td colspan="5" class="text-center">No stocks in this watchlist yet.</td>
-                </tr>
-            `;
-        }
-        
-        content += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        container.innerHTML = content;
-    }
-    
-    // Add helper function for stock details
-    function viewStockDetails(symbol) {
-        alert(`Viewing details for ${symbol}`);
-        // Future implementation
-    }
-    
-    // Log that our script has loaded
-    console.log('Direct watchlist handler script loaded successfully!');
-
-    function showCreateWatchlistForm() {
-        document.getElementById('createWatchlistFormContainer').style.display = 'block';
-        document.getElementById('watchlistDetails').style.display = 'none';
-    }
-
-    document.getElementById('createWatchlistForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const formData = new FormData(this);
-        fetch('{% url "dashboard:create_watchlist" %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                window.location.href = `/dashboard/watchlist/${data.watchlist_id}/`;
-            } else {
-                alert(data.error || 'An error occurred while creating the watchlist.');
-            }
-        })
-        .catch(error => {
-            console.error('Error creating watchlist:', error);
-            alert('An error occurred while creating the watchlist.');
-        });
-    });
-</script>
 {% endblock %} 
