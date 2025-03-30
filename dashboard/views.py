@@ -191,8 +191,12 @@ def watchlist(request):
         is_global=False
     ).prefetch_related('stocks')
     
+    # Get all stocks for the create watchlist modal
+    stocks = Stock.objects.all().order_by('symbol')
+    
     context = {
         'personal_watchlists': personal_watchlists,
+        'stocks': stocks,
     }
     
     return render(request, 'dashboard/watchlist.html', context)
@@ -543,10 +547,11 @@ def create_watchlist(request):
             name = request.POST.get('name')
             description = request.POST.get('description')
             visibility = request.POST.get('visibility', 'private')
+            stock_ids = request.POST.getlist('stocks')
             
             if not name:
                 messages.error(request, 'Watchlist name is required')
-                return render(request, 'dashboard/create_watchlist.html')
+                return JsonResponse({'error': 'Watchlist name is required'}, status=400) if request.headers.get('X-Requested-With') == 'XMLHttpRequest' else render(request, 'dashboard/create_watchlist.html', {'stocks': Stock.objects.all().order_by('symbol')})
             
             # Create the watchlist
             watchlist = Watchlist.objects.create(
@@ -556,17 +561,35 @@ def create_watchlist(request):
                 is_global=(visibility == 'public')
             )
             
+            # Add selected stocks to the watchlist
+            if stock_ids:
+                stocks = Stock.objects.filter(id__in=stock_ids)
+                watchlist.stocks.add(*stocks)
+            
             messages.success(request, 'Watchlist created successfully')
+            
+            # Return appropriate response based on request type
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Watchlist created successfully',
+                    'redirect': reverse('dashboard:watchlist_detail', args=[watchlist.id])
+                })
             return redirect('dashboard:watchlist_detail', watchlist_id=watchlist.id)
             
         except Exception as e:
             logger.error(f"Error creating watchlist: {str(e)}")
             messages.error(request, 'Error creating watchlist')
-            return render(request, 'dashboard/create_watchlist.html')
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'error': str(e)}, status=500)
+            return render(request, 'dashboard/create_watchlist.html', {'stocks': Stock.objects.all().order_by('symbol')})
     
     # If it's a GET request, show the create form
-    template = 'dashboard/create_watchlist_content.html' if request.headers.get('X-Requested-With') == 'XMLHttpRequest' else 'dashboard/create_watchlist.html'
-    return render(request, template)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, 'dashboard/create_watchlist_content.html', {'stocks': Stock.objects.all().order_by('symbol')})
+    
+    # For direct access, redirect to watchlist page
+    return redirect('dashboard:watchlist')
 
 @login_required
 def create_watchlist_api(request):

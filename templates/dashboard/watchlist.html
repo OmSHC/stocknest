@@ -107,46 +107,6 @@
     </div>
 </div>
 
-<!-- Create Watchlist Modal -->
-<div class="modal fade" id="createWatchlistModal" tabindex="-1" aria-labelledby="createWatchlistModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content bg-dark text-light">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createWatchlistModalLabel">Create New Watchlist</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="createWatchlistForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="watchlistName" class="form-label">Name</label>
-                        <input type="text" class="form-control bg-dark text-light" id="watchlistName" name="name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="watchlistDescription" class="form-label">Description</label>
-                        <textarea class="form-control bg-dark text-light" id="watchlistDescription" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Select Stocks</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control bg-dark text-light" id="stockSearch" placeholder="Search stocks...">
-                            <button class="btn btn-outline-light" type="button" id="searchButton">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                        <div id="searchResults" class="list-group mt-2"></div>
-                        <div id="selectedStocks" class="mt-2"></div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="createWatchlistButton">Create Watchlist</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Add some custom CSS to make it more obvious -->
 <style>
     .watchlist-name:hover {

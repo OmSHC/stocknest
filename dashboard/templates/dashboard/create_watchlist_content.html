@@ -1,7 +1,75 @@
 {% load static %}
 
-<!-- Load the stock search script first -->
-<script src="{% static 'js/stock_search.js' %}"></script>
+<!-- Load jQuery first -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Load Bootstrap and Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"></script>
+
+<!-- Load our custom scripts -->
+<script src="{% static 'js/watchlist.js' %}"></script>
+
+<style>
+/* Custom styles for stock list */
+.stock-list-container {
+    background-color: #2b3035;
+    border-color: #495057;
+}
+
+.stock-item {
+    transition: background-color 0.2s;
+}
+
+.stock-item:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.stock-item:focus {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    outline: none;
+}
+
+#selectedStocksList {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    min-height: 50px !important;
+    background-color: rgba(43, 48, 53, 0.5) !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    border: 1px dashed rgba(255, 255, 255, 0.1) !important;
+    margin-top: 10px !important;
+    visibility: visible !important;
+    position: relative !important;
+    z-index: 1000 !important;
+}
+
+.selected-stock-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    background-color: #0d6efd !important;
+    color: white !important;
+    padding: 8px 12px !important;
+    border-radius: 4px !important;
+    margin: 4px !important;
+    font-size: 0.9em !important;
+    visibility: visible !important;
+    position: relative !important;
+    z-index: 1001 !important;
+}
+
+.selected-stock-badge .btn-close {
+    margin-left: 8px !important;
+    opacity: 0.8 !important;
+    display: inline-block !important;
+    transition: opacity 0.2s !important;
+}
+
+.selected-stock-badge .btn-close:hover {
+    opacity: 1 !important;
+}
+</style>
 
 <div class="card bg-dark text-light">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -13,7 +81,7 @@
         </button>
     </div>
     <div class="card-body">
-        <form id="createWatchlistForm" method="post" action="{% url 'dashboard:create_watchlist' %}" class="needs-validation" novalidate onsubmit="return false;">
+        <form id="createWatchlistForm" method="post" action="{% url 'dashboard:create_watchlist' %}" class="needs-validation" novalidate>
             {% csrf_token %}
             <div class="mb-4">
                 <label for="watchlistName" class="form-label">Watchlist Name</label>
@@ -32,57 +100,101 @@
             </div>
 
             <div class="mb-4">
-                <label class="form-label d-block">Visibility</label>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="visibility" id="visibilityPublic" value="public" checked>
-                    <label class="form-check-label" for="visibilityPublic">
-                        <i class="fas fa-globe-americas me-1"></i> Public
-                    </label>
+                <label for="stockSelection" class="form-label">Select Stocks</label>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" id="stockSearch" placeholder="Search stocks by name or symbol..." oninput="if(window.watchlistManager) window.watchlistManager.handleSearchInput()">
+                    <button class="btn btn-primary" type="button" id="addStock" onclick="if(window.watchlistManager) window.watchlistManager.handleAddStock()">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
                 </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="visibility" id="visibilityPrivate" value="private">
-                    <label class="form-check-label" for="visibilityPrivate">
-                        <i class="fas fa-lock me-1"></i> Private
-                    </label>
+                <div class="stock-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 10px;">
+                    <div class="list-group">
+                        {% for stock in stocks %}
+                        <div class="list-group-item stock-item" style="background: transparent; border: none; padding: 8px; cursor: pointer; display: none;" tabindex="0" onclick="if(window.watchlistManager) window.watchlistManager.handleStockItemClick(event, this)">
+                            <div class="form-check">
+                                <input class="form-check-input stock-checkbox" type="checkbox" value="{{ stock.id }}" id="stock{{ stock.id }}" name="stocks" onchange="if(window.watchlistManager) window.watchlistManager.handleStockSelection()">
+                                <label class="form-check-label" for="stock{{ stock.id }}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ stock.symbol }}</strong>
+                                            <small class="text-muted d-block">{{ stock.name }}</small>
+                                        </div>
+                                        <span class="badge bg-secondary">{{ stock.sector }}</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div id="noResults" class="text-center text-muted py-3" style="display: block;">
+                        Type at least 3 characters to search...
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">Selected stocks: <span id="selectedCount">0</span></small>
+                </div>
+                <div id="selectedStocksList" class="selected-stocks-container mt-2" style="display: flex !important; flex-wrap: wrap !important; gap: 0.5rem !important; min-height: 50px !important; background-color: rgba(43, 48, 53, 0.5) !important; border-radius: 8px !important; padding: 10px !important; border: 1px dashed rgba(255, 255, 255, 0.1) !important; margin-top: 10px !important; visibility: visible !important; position: relative !important; z-index: 1000 !important;">
+                    <!-- Selected stocks will be shown here -->
                 </div>
             </div>
 
             <div class="mb-4">
-                <label for="stockSelection" class="form-label">Select Stocks</label>
-                <div class="input-group mb-2">
-                    <input type="text" class="form-control" id="stockSearch" placeholder="Search stocks by name or symbol...">
-                </div>
-                <div class="stock-list-container bg-darker rounded p-3 mb-3" style="max-height: 300px; overflow-y: auto;">
-                    <div id="stockSearchResults" class="list-group">
-                        <!-- Search results will be shown here -->
-                    </div>
-                    <div id="searchLoading" class="text-center py-3" style="display: none;">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                    <div id="noResults" class="text-center text-muted py-3" style="display: none;">
-                        No stocks found matching your search.
-                    </div>
-                </div>
-                <div class="selected-stocks-container">
-                    <small class="text-muted d-block mb-2">Selected stocks: <span id="selectedCount">0</span></small>
-                    <div id="selectedStocksList" class="d-flex flex-wrap gap-2">
-                        <!-- Selected stocks will be shown here -->
-                    </div>
-                    <!-- Hidden input to store selected stocks -->
-                    <input type="hidden" name="stocks" id="selectedStocksInput">
-                </div>
+                <label for="watchlistVisibility" class="form-label">Visibility</label>
+                <select class="form-select" id="watchlistVisibility" name="visibility">
+                    <option value="private">Private</option>
+                    <option value="public">Public</option>
+                </select>
             </div>
 
-            <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" onclick="history.back()">
-                    <i class="fas fa-times me-2"></i>Cancel
-                </button>
+            <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-check me-2"></i>Create Watchlist
+                    <i class="fas fa-plus-circle me-2"></i>Create Watchlist
                 </button>
             </div>
         </form>
     </div>
-</div> 
+</div>
+
+<script>
+// Initialize when the modal content is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Modal content loaded, initializing search');
+    initializeWatchlistManager();
+});
+
+// Also initialize when the modal is shown
+document.addEventListener('shown.bs.modal', function(event) {
+    console.log('Modal shown, initializing search');
+    initializeWatchlistManager();
+});
+
+function initializeWatchlistManager() {
+    if (!window.watchlistManager) {
+        window.watchlistManager = new WatchlistManager();
+    }
+    window.watchlistManager.initializeProperties();
+    window.watchlistManager.bindEvents();
+    
+    // Force initialize selected stocks list container
+    const selectedStocksList = document.getElementById('selectedStocksList');
+    if (selectedStocksList) {
+        selectedStocksList.className = 'selected-stocks-container';
+        selectedStocksList.style.cssText = `
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+            min-height: 50px !important;
+            background-color: rgba(43, 48, 53, 0.5) !important;
+            border-radius: 8px !important;
+            padding: 10px !important;
+            border: 1px dashed rgba(255, 255, 255, 0.1) !important;
+            margin-top: 10px !important;
+            visibility: visible !important;
+            position: relative !important;
+            z-index: 1000 !important;
+        `;
+        console.log('Selected stocks list container initialized:', selectedStocksList);
+    }
+}
+</script> 

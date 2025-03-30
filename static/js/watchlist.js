@@ -2,7 +2,39 @@ class WatchlistManager {
     constructor() {
         console.log('WatchlistManager constructor called');
         
-        // DOM Elements
+        // Initialize properties first
+        this.initializeProperties();
+        
+        // Bind events only if elements exist
+        this.bindEvents();
+        
+        // Initialize modal event listener
+        this.initializeModalListener();
+        
+        // Ensure selected stocks list is visible
+        if (this.selectedStocksList) {
+            this.selectedStocksList.style.display = 'flex';
+            this.selectedStocksList.style.flexWrap = 'wrap';
+            this.selectedStocksList.style.gap = '0.5rem';
+            console.log('Selected stocks list initialized with styles:', {
+                display: this.selectedStocksList.style.display,
+                flexWrap: this.selectedStocksList.style.flexWrap,
+                gap: this.selectedStocksList.style.gap
+            });
+        }
+        
+        // Debug log
+        console.log('WatchlistManager initialized with elements:', {
+            stockSearch: this.stockSearch,
+            stockItems: this.stockItems?.length,
+            selectedStocksList: this.selectedStocksList,
+            selectedCount: this.selectedCount,
+            noResults: this.noResults
+        });
+    }
+
+    initializeProperties() {
+        // DOM Elements - with existence checks
         this.stockSearch = document.getElementById('stockSearch');
         this.stockItems = document.querySelectorAll('.stock-item');
         this.selectedStocksList = document.getElementById('selectedStocksList');
@@ -18,81 +50,176 @@ class WatchlistManager {
         this.watchlistDetailsLoading = document.getElementById('watchlistDetailsLoading');
         this.watchlistsContainer = document.getElementById('watchlistsContainer');
         this.createWatchlistFormContainer = document.getElementById('createWatchlistFormContainer');
+        this.createWatchlistModal = document.getElementById('createWatchlistModal');
+
+        // Initialize Bootstrap modal if it exists
+        if (this.createWatchlistModal) {
+            this.modal = new bootstrap.Modal(this.createWatchlistModal);
+        }
+
+        // Log which elements were found and which weren't
+        console.log('Elements found:', {
+            stockSearch: !!this.stockSearch,
+            stockItems: this.stockItems.length,
+            selectedStocksList: !!this.selectedStocksList,
+            selectedCount: !!this.selectedCount,
+            stockListContainer: !!this.stockListContainer,
+            noResults: !!this.noResults,
+            addStockBtn: !!this.addStockBtn,
+            createWatchlistForm: !!this.createWatchlistForm,
+            createWatchlistModal: !!this.createWatchlistModal
+        });
 
         // State
         this.selectedStocks = new Set();
         this.currentWatchlistId = null;
+    }
 
-        // Bind event handlers
-        this.bindEvents();
-        
-        // Debug log
-        console.log('WatchlistManager initialized');
-        console.log('Watchlist details container found:', !!this.watchlistDetailsContainer);
-        console.log('Found watchlist names:', document.querySelectorAll('.watchlist-name').length);
+    initializeModalListener() {
+        if (this.createWatchlistModal) {
+            this.createWatchlistModal.addEventListener('shown.bs.modal', () => {
+                console.log('Create Watchlist modal shown, reinitializing search');
+                this.initializeProperties();
+                this.bindEvents();
+            });
+        }
     }
 
     bindEvents() {
         // Stock search input
         if (this.stockSearch) {
-            this.stockSearch.addEventListener('input', () => this.handleSearchInput());
+            console.log('Binding search input event');
+            // Remove any existing event listeners
+            this.stockSearch.removeEventListener('input', this.handleSearchInput);
+            // Add the event listener with onclick
+            this.stockSearch.oninput = (e) => {
+                console.log('Search input event triggered:', e.target.value);
+                this.handleSearchInput();
+            };
+        } else {
+            console.warn('Stock search input element not found');
         }
 
         // Add stock button
         if (this.addStockBtn) {
-            this.addStockBtn.addEventListener('click', () => this.handleAddStock());
+            this.addStockBtn.onclick = () => this.handleAddStock();
         }
 
         // Stock item clicks
-        if (this.stockItems) {
+        if (this.stockItems && this.stockItems.length > 0) {
+            console.log(`Binding click events to ${this.stockItems.length} stock items`);
             this.stockItems.forEach(item => {
-                item.addEventListener('click', (e) => this.handleStockItemClick(e, item));
+                item.onclick = (e) => this.handleStockItemClick(e, item);
             });
+        } else {
+            console.warn('No stock items found to bind events to');
         }
 
-        // Keyboard navigation
-        if (this.stockSearch) {
-            this.stockSearch.addEventListener('keydown', (e) => this.handleKeyboardNavigation(e));
-        }
+        // Stock checkboxes
+        const checkboxes = document.querySelectorAll('.stock-checkbox');
+        console.log(`Found ${checkboxes.length} stock checkboxes`);
+        checkboxes.forEach(checkbox => {
+            checkbox.onchange = () => this.handleStockSelection();
+        });
 
-        // Create watchlist form submission - allow normal form submission
-        if (this.createWatchlistForm && this.createWatchlistForm.classList.contains('ajax-form')) {
-            this.createWatchlistForm.addEventListener('submit', (e) => {
+        // Create watchlist form submission
+        if (this.createWatchlistForm) {
+            this.createWatchlistForm.onsubmit = (e) => {
                 e.preventDefault();
                 this.createWatchlist();
-            });
+            };
         }
 
         // Watchlist name clicks
         const watchlistNames = document.querySelectorAll('.watchlist-name');
-        console.log('Binding click events to', watchlistNames.length, 'watchlist names');
-        
-        watchlistNames.forEach(name => {
-            name.addEventListener('click', (e) => {
-                e.preventDefault();
-                const watchlistId = name.getAttribute('data-watchlist-id');
-                console.log('Watchlist name clicked:', name.textContent.trim(), 'ID:', watchlistId);
-                this.loadWatchlistDetails(watchlistId);
+        if (watchlistNames.length > 0) {
+            console.log('Binding click events to', watchlistNames.length, 'watchlist names');
+            watchlistNames.forEach(name => {
+                name.onclick = (e) => {
+                    e.preventDefault();
+                    const watchlistId = name.getAttribute('data-watchlist-id');
+                    console.log('Watchlist name clicked:', name.textContent.trim(), 'ID:', watchlistId);
+                    this.loadWatchlistDetails(watchlistId);
+                };
             });
-        });
+        }
     }
 
     handleSearchInput() {
-        const searchText = this.stockSearch.value.toLowerCase();
+        // Get the search input value directly from the event
+        const searchInput = document.getElementById('stockSearch');
+        if (!searchInput) {
+            console.error('Search input element not found');
+            return;
+        }
+
+        const searchText = searchInput.value.toLowerCase().trim();
         let visibleCount = 0;
 
+        // Log the search attempt
+        console.log('Raw search input value:', searchInput.value);
+        console.log('Search text after trim:', searchText);
+
+        // Get all stock items again to ensure we have the latest
+        this.stockItems = document.querySelectorAll('.stock-item');
+        console.log('Total stock items:', this.stockItems.length);
+
+        // Hide all stocks first
         this.stockItems.forEach(item => {
-            const symbol = item.querySelector('strong').textContent.toLowerCase();
-            const name = item.querySelector('small').textContent.toLowerCase();
-            const matches = symbol.includes(searchText) || name.includes(searchText);
-            
-            item.style.display = matches ? 'block' : 'none';
-            if (matches) visibleCount++;
+            item.style.cssText = 'background: transparent; border: none; padding: 8px; cursor: pointer; display: none;';
         });
 
-        // Show/hide container and messages
-        this.stockListContainer.style.display = searchText ? 'block' : 'none';
-        this.noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+        // If search text is less than 3 characters, show message and return
+        if (searchText.length < 3) {
+            if (this.noResults) {
+                this.noResults.textContent = 'Type at least 3 characters to search...';
+                this.noResults.style.display = 'block';
+            }
+            return;
+        }
+
+        // Filter stocks based on search text
+        this.stockItems.forEach(item => {
+            const symbol = item.querySelector('strong')?.textContent?.trim() || '';
+            const name = item.querySelector('small')?.textContent?.trim() || '';
+            
+            // Convert to lowercase for comparison
+            const symbolLower = symbol.toLowerCase();
+            const nameLower = name.toLowerCase();
+            
+            // Check for matches
+            const matchesSymbol = symbolLower.includes(searchText);
+            const matchesName = nameLower.includes(searchText);
+            
+            // Show matching items
+            if (matchesSymbol || matchesName) {
+                // Force display block and ensure other styles are preserved
+                item.style.cssText = 'background: transparent; border: none; padding: 8px; cursor: pointer; display: block !important;';
+                visibleCount++;
+                console.log('Match found:', symbol, 'Setting display to block');
+                
+                // Double check the display style
+                const computedStyle = window.getComputedStyle(item);
+                console.log('Computed display style:', computedStyle.display);
+            }
+        });
+
+        // Update no results message
+        if (this.noResults) {
+            if (visibleCount === 0) {
+                this.noResults.textContent = 'No stocks found matching your search.';
+                this.noResults.style.display = 'block';
+            } else {
+                this.noResults.style.display = 'none';
+            }
+        }
+
+        // Log search results and verify visibility
+        console.log(`Found ${visibleCount} matches for "${searchText}"`);
+        if (visibleCount > 0) {
+            const visibleItems = Array.from(this.stockItems).filter(item => window.getComputedStyle(item).display !== 'none');
+            console.log('Actually visible items:', visibleItems.length);
+        }
     }
 
     handleAddStock() {
@@ -108,63 +235,110 @@ class WatchlistManager {
     }
 
     handleStockItemClick(e, item) {
-        if (e.target !== item.querySelector('.stock-checkbox')) {
-            this.handleStockSelection(item);
+        if (e.target.tagName !== 'INPUT') {
+            const checkbox = item.querySelector('.stock-checkbox');
+            checkbox.checked = !checkbox.checked;
+            this.handleStockSelection();
         }
     }
 
-    handleKeyboardNavigation(e) {
-        if (e.key === 'Enter' && this.stockSearch.value) {
-            e.preventDefault();
-            this.handleAddStock();
+    handleStockSelection() {
+        // Get all checked checkboxes
+        const selectedCheckboxes = document.querySelectorAll('.stock-checkbox:checked');
+        console.log('Selected checkboxes:', selectedCheckboxes.length);
+        
+        // Update selected count
+        if (this.selectedCount) {
+            this.selectedCount.textContent = selectedCheckboxes.length;
         }
-    }
 
-    handleStockSelection(item) {
-        const checkbox = item.querySelector('.stock-checkbox');
-        const stockId = checkbox.value;
-        const symbol = item.querySelector('strong').textContent;
-        const name = item.querySelector('small').textContent;
+        // Update selected stocks list
+        const selectedStocksList = document.getElementById('selectedStocksList');
+        console.log('Selected stocks list element:', selectedStocksList);
+        
+        if (selectedStocksList) {
+            // Clear existing content
+            selectedStocksList.innerHTML = '';
+            
+            // Add each selected stock
+            selectedCheckboxes.forEach(checkbox => {
+                const stockItem = checkbox.closest('.stock-item');
+                if (!stockItem) {
+                    console.warn('Stock item not found for checkbox:', checkbox.id);
+                    return;
+                }
 
-        if (checkbox.checked) {
-            this.selectedStocks.add(stockId);
+                const symbol = stockItem.querySelector('strong')?.textContent?.trim() || '';
+                
+                console.log('Creating badge for:', { symbol });
+                
+                // Create badge for selected stock
+                const badge = document.createElement('div');
+                badge.className = 'selected-stock-badge';
+                badge.style.cssText = `
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    background-color: #0d6efd !important;
+                    color: white !important;
+                    padding: 8px 12px !important;
+                    border-radius: 4px !important;
+                    margin: 4px !important;
+                    font-size: 0.9em !important;
+                    visibility: visible !important;
+                    position: relative !important;
+                    z-index: 1001 !important;
+                `;
+                
+                // Set badge content with only stock symbol
+                badge.innerHTML = `
+                    <span class="fw-bold text-white">${symbol}</span>
+                    <button type="button" class="btn-close btn-close-white ms-2" 
+                            style="font-size: 0.7em; opacity: 0.8; display: inline-block !important;"
+                            aria-label="Remove ${symbol}"
+                            onclick="event.preventDefault(); event.stopPropagation(); window.watchlistManager.removeStock('${checkbox.id}')"></button>
+                `;
+                
+                // Add badge to selected stocks list
+                selectedStocksList.appendChild(badge);
+                
+                // Log for debugging
+                console.log('Added badge to container:', {
+                    badge: badge.outerHTML,
+                    containerChildren: selectedStocksList.children.length,
+                    badgeDisplay: window.getComputedStyle(badge).display,
+                    badgeVisibility: window.getComputedStyle(badge).visibility
+                });
+            });
         } else {
-            this.selectedStocks.delete(stockId);
+            console.warn('Selected stocks list container not found');
         }
-
-        this.updateSelectedCount();
-        this.updateSelectedStocksList();
     }
 
-    updateSelectedCount() {
-        this.selectedCount.textContent = this.selectedStocks.size;
-    }
-
-    updateSelectedStocksList() {
-        this.selectedStocksList.innerHTML = Array.from(this.selectedStocks).map(stockId => {
-            const item = Array.from(this.stockItems).find(item => 
-                item.querySelector('.stock-checkbox').value === stockId
-            );
-            const symbol = item.querySelector('strong').textContent;
-            return `
-                <span class="badge bg-primary">
-                    ${symbol}
-                    <button type="button" class="btn-close btn-close-white ms-1" 
-                            onclick="watchlistManager.removeStock('${stockId}')"></button>
-                </span>
-            `;
-        }).join('');
-    }
-
-    removeStock(stockId) {
-        const item = Array.from(this.stockItems).find(item => 
-            item.querySelector('.stock-checkbox').value === stockId
-        );
-        if (item) {
-            item.querySelector('.stock-checkbox').checked = false;
-            this.selectedStocks.delete(stockId);
-            this.updateSelectedCount();
-            this.updateSelectedStocksList();
+    removeStock(checkboxId) {
+        console.log('Removing stock with checkbox ID:', checkboxId);
+        const checkbox = document.getElementById(checkboxId);
+        if (checkbox) {
+            checkbox.checked = false;
+            this.handleStockSelection();
+            
+            // Hide the stock item if it doesn't match the current search
+            const stockItem = checkbox.closest('.stock-item');
+            if (stockItem && this.stockSearch) {
+                const searchText = this.stockSearch.value.toLowerCase().trim();
+                if (searchText.length >= 3) {
+                    const symbol = stockItem.querySelector('strong')?.textContent?.trim() || '';
+                    const name = stockItem.querySelector('small')?.textContent?.trim() || '';
+                    const matches = symbol.toLowerCase().includes(searchText) || 
+                                  name.toLowerCase().includes(searchText);
+                    stockItem.style.display = matches ? 'block' : 'none';
+                } else {
+                    stockItem.style.display = 'none';
+                }
+            }
+            
+            console.log('Stock removed successfully');
+        } else {
+            console.warn('Checkbox not found:', checkboxId);
         }
     }
 
@@ -192,9 +366,10 @@ class WatchlistManager {
     }
 
     async createWatchlist() {
+        const form = document.getElementById('createWatchlistForm');
         const name = document.getElementById('watchlistName').value;
         const description = document.getElementById('watchlistDescription').value;
-        const visibility = document.getElementById('watchlistVisibility').value;
+        const visibility = document.getElementById('watchlistVisibility')?.value || 'private';
         
         if (!name) {
             this.showAlert('danger', 'Watchlist name is required');
@@ -202,47 +377,57 @@ class WatchlistManager {
         }
         
         // Show loading state on the submit button
-        const submitButton = document.querySelector('#createWatchlistForm button[type="submit"]');
+        const submitButton = form.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
         
         try {
             // Create FormData object
-            const formData = new FormData();
-            formData.append('name', name);
-            formData.append('description', description);
-            formData.append('visibility', visibility);
+            const formData = new FormData(form);
             
-            const response = await fetch('/dashboard/watchlist/create/', {
+            // Add selected stocks
+            const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
+            formData.delete('stocks'); // Remove any existing stocks field
+            selectedStocks.forEach(stockId => formData.append('stocks', stockId));
+            
+            const response = await fetch(form.action, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: formData
             });
 
+            const data = await response.json();
+            
             if (response.ok) {
+                // Hide the modal
+                const modal = document.getElementById('createWatchlistModal');
+                const bsModal = bootstrap.Modal.getInstance(modal);
+                if (bsModal) {
+                    bsModal.hide();
+                }
+                
+                // Show success message
+                this.showAlert('success', data.message);
+                
                 // Reset form
                 this.resetForm();
                 
-                // Show success message
-                this.showAlert('success', 'Watchlist created successfully');
-                
-                // Hide the form and show the watchlists
-                this.hideCreateWatchlistForm();
-                
-                // Reload the page to show the new watchlist
-                window.location.reload();
+                // Redirect if URL provided
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                }
             } else {
-                const data = await response.json();
                 this.showAlert('danger', data.error || 'Error creating watchlist');
             }
         } catch (error) {
             console.error('Error:', error);
             this.showAlert('danger', 'Error creating watchlist');
         } finally {
-            // Reset button state
+            // Restore button state
             submitButton.disabled = false;
             submitButton.innerHTML = originalText;
         }
@@ -255,9 +440,18 @@ class WatchlistManager {
         this.selectedStocks.clear();
         this.updateSelectedCount();
         this.updateSelectedStocksList();
-        this.stockSearch.value = '';
-        this.stockListContainer.style.display = 'none';
-        this.noResults.style.display = 'none';
+        if (this.stockSearch) {
+            this.stockSearch.value = '';
+        }
+        if (this.stockItems) {
+            this.stockItems.forEach(item => {
+                item.style.display = 'none';
+            });
+        }
+        if (this.noResults) {
+            this.noResults.textContent = 'Type to search for stocks...';
+            this.noResults.style.display = 'block';
+        }
     }
 
     showAlert(type, message) {
@@ -308,8 +502,38 @@ class WatchlistManager {
     }
 
     async viewWatchlist(watchlistId) {
-        // TODO: Implement view functionality
-        console.log('View watchlist:', watchlistId);
+        console.log('Showing watchlist:', watchlistId);
+        
+        // Get the elements we need
+        const detailsContainer = document.getElementById('watchlistDetails');
+        const nameElement = document.getElementById('watchlistDetailsName');
+        const contentElement = document.getElementById('watchlistDetailsContent');
+        
+        // Log which elements were found
+        console.log('Elements found:', {
+            detailsContainer: !!detailsContainer,
+            nameElement: !!nameElement,
+            contentElement: !!contentElement
+        });
+        
+        // Only proceed if we have all required elements
+        if (!detailsContainer || !nameElement || !contentElement) {
+            console.warn('Required elements not found for showing watchlist');
+            return;
+        }
+        
+        // Show the details container
+        detailsContainer.style.display = 'block';
+        
+        // Update the name (safely)
+        try {
+            nameElement.textContent = 'Loading...';
+        } catch (error) {
+            console.error('Error updating name element:', error);
+        }
+        
+        // Load the watchlist details
+        this.loadWatchlistDetails(watchlistId);
     }
 
     async loadWatchlistDetails(watchlistId) {
@@ -472,11 +696,16 @@ class WatchlistManager {
     // Initialize the watchlist manager
     static init() {
         console.log('DOM fully loaded, initializing WatchlistManager');
-        window.watchlistManager = new WatchlistManager();
+        try {
+            window.watchlistManager = new WatchlistManager();
+        } catch (error) {
+            console.error('Error initializing WatchlistManager:', error);
+        }
     }
 }
 
-// Make sure we initialize only when the DOM is fully loaded
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    WatchlistManager.init();
+    console.log('DOM loaded, initializing WatchlistManager');
+    window.watchlistManager = new WatchlistManager();
 }); 

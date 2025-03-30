@@ -920,9 +920,9 @@
                         <i class="fas fa-user-circle text-primary me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">User Profile</h5>
                     </div>
-                    <a href="{% url 'dashboard:create_watchlist' %}" class="btn btn-primary btn-sm w-100">
-                        <i class="fas fa-plus-circle me-2"></i>Create New Watchlist
-                    </a>
+                    <button class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-cog me-2"></i>Edit Profile
+                    </button>
                 </div>
                 
                 <div class="watchlist-group mb-4">
@@ -1098,9 +1098,9 @@
                         <i class="fas fa-briefcase text-primary me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">My Holdings</h5>
                     </div>
-                    <a href="{% url 'dashboard:create_watchlist' %}" class="btn btn-primary btn-sm w-100">
+                    <button class="btn btn-primary btn-sm w-100">
                         <i class="fas fa-plus-circle me-2"></i>Add New Stock
-                    </a>
+                    </button>
                 </div>
                 
                 <div class="watchlist-group mb-4">
@@ -1194,9 +1194,9 @@
                         <i class="fas fa-shield-alt text-warning me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">Risk Analysis</h5>
                     </div>
-                    <a href="{% url 'dashboard:create_watchlist' %}" class="btn btn-primary btn-sm w-100">
+                    <button class="btn btn-primary btn-sm w-100">
                         <i class="fas fa-sync me-2"></i>Update Analysis
-                    </a>
+                    </button>
                 </div>
                 
                 <div class="watchlist-group mb-4">
@@ -1242,9 +1242,9 @@
                         <i class="fas fa-file-alt text-info me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">Reports</h5>
                     </div>
-                    <a href="{% url 'dashboard:create_watchlist' %}" class="btn btn-primary btn-sm w-100">
+                    <button class="btn btn-primary btn-sm w-100">
                         <i class="fas fa-plus-circle me-2"></i>New Report
-                    </a>
+                    </button>
                 </div>
                 
                 <div class="watchlist-group mb-4">
@@ -1501,22 +1501,15 @@
             </div>
 
             <!-- Dashboard Content -->
-            <div class="dashboard-content">
-                {% block content %}{% endblock %}
-            </div>
-
-            <!-- Watchlist Content -->
-            <div class="watchlist-content" style="display: none;">
+            <div class="dashboard-content" style="display: none;">
                 <div class="card bg-dark text-light">
                     <div class="card-header">
                         <h4 class="mb-0">
-                            <i class="fas fa-star text-warning me-2"></i>Watchlists
+                            <i class="fas fa-chart-line text-primary me-2"></i>Dashboard
                         </h4>
                     </div>
                     <div class="card-body">
-                        <div class="watchlist-list">
-                            <!-- Watchlist list content will be shown here -->
-                        </div>
+                        <!-- Dashboard content will be shown here -->
                     </div>
                 </div>
             </div>
@@ -1629,10 +1622,10 @@
                                     <i class="fas fa-plus"></i> Add
                                 </button>
                             </div>
-                            <div class="stock-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 10px; display: none;">
+                            <div class="stock-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 10px;">
                                 <div class="list-group">
                                     {% for stock in stocks %}
-                                    <div class="list-group-item stock-item" style="background: transparent; border: none; padding: 8px; display: none; cursor: pointer;" tabindex="0">
+                                    <div class="list-group-item stock-item" style="background: transparent; border: none; padding: 8px; cursor: pointer;" tabindex="0">
                                         <div class="form-check">
                                             <input class="form-check-input stock-checkbox" type="checkbox" value="{{ stock.id }}" id="stock{{ stock.id }}" name="stocks">
                                             <label class="form-check-label" for="stock{{ stock.id }}">
@@ -1649,7 +1642,7 @@
                                     {% endfor %}
                                 </div>
                                 <div id="noResults" class="text-center text-muted py-3" style="display: none;">
-                                    No stocks found matching your search.
+                                    Type to search for stocks...
                                 </div>
                                 <div id="searchLoading" class="text-center py-3" style="display: none;">
                                     <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -1667,7 +1660,6 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="createWatchlist()">Create Watchlist</button>
                 </div>
             </div>
@@ -1706,7 +1698,19 @@
         if (userPanel && panelOverlay) {
             hideRightSidebar();
         }
-        hideWatchlistForm();
+    }
+
+    // Function to show portfolio
+    function showPortfolio() {
+        hideAllSections();
+        hideAllContent();
+        document.getElementById('portfolioStats').style.display = 'block';
+        document.querySelector('.portfolio-section').style.display = 'block';
+        document.querySelector('.portfolio-content').style.display = 'block';
+        middleSidebarTitle.textContent = 'My Holdings';
+        if (userPanel && panelOverlay) {
+            hideRightSidebar();
+        }
     }
 
     // Function to show watchlist
@@ -1720,7 +1724,6 @@
         if (userPanel && panelOverlay) {
             hideRightSidebar();
         }
-        hideWatchlistForm();
     }
 
     // Function to show market
@@ -2048,6 +2051,9 @@
                     switch(panel) {
                         case 'watchlist':
                             showWatchlist();
+                            break;
+                        case 'portfolio':
+                            showPortfolio();
                             break;
                         case 'market-insights':
                             showMarket();

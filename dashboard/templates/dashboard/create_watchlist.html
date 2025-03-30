@@ -8,13 +8,13 @@
     <div class="row">
         <div class="col-12">
             <div class="card bg-dark text-light">
-                <div class="card-header">
+                <div class="modal-header">
                     <h4 class="mb-0">
                         <i class="fas fa-plus text-primary me-2"></i>Create New Watchlist
                     </h4>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{% url 'dashboard:create_watchlist' %}">
+                    <form id="createWatchlistForm" method="POST" action="{% url 'dashboard:create_watchlist' %}">
                         {% csrf_token %}
                         <div class="mb-3">
                             <label for="watchlistName" class="form-label">Watchlist Name</label>
@@ -31,6 +31,44 @@
                                 <option value="public">Public</option>
                             </select>
                         </div>
+                        <div class="mb-3">
+                            <label for="stockSelection" class="form-label">Select Stocks</label>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control bg-dark text-light" id="stockSearch" placeholder="Search stocks by name or symbol...">
+                                <button class="btn btn-primary" type="button" id="addStock">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
+                            <div class="stock-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 10px;">
+                                <div class="list-group">
+                                    {% for stock in stocks %}
+                                    <div class="list-group-item stock-item" style="background: transparent; border: none; padding: 8px; cursor: pointer;" tabindex="0">
+                                        <div class="form-check">
+                                            <input class="form-check-input stock-checkbox" type="checkbox" value="{{ stock.id }}" id="stock{{ stock.id }}" name="stocks">
+                                            <label class="form-check-label" for="stock{{ stock.id }}">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{{ stock.symbol }}</strong>
+                                                        <small class="text-muted d-block">{{ stock.name }}</small>
+                                                    </div>
+                                                    <span class="badge bg-secondary">{{ stock.sector }}</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div id="noResults" class="text-center text-muted py-3" style="display: none;">
+                                    No stocks found matching your search.
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">Selected stocks: <span id="selectedCount">0</span></small>
+                            </div>
+                            <div id="selectedStocksList" class="mt-2 d-flex flex-wrap gap-2">
+                                <!-- Selected stocks will be shown here -->
+                            </div>
+                        </div>
                         <div class="text-end">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save me-2"></i>Create Watchlist
@@ -42,4 +80,15 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the WatchlistManager
+    if (typeof WatchlistManager !== 'undefined') {
+        window.watchlistManager = new WatchlistManager();
+    }
+});
+</script>
 {% endblock %} 
