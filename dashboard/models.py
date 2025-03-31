@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.utils import timezone
+from django.urls import reverse
 
 class Portfolio(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='portfolio')
@@ -91,6 +92,9 @@ class Watchlist(models.Model):
 
     def __str__(self):
         return f"{self.name} (Created by: {self.created_by.username if self.created_by else 'None'})"
+
+    def get_absolute_url(self):
+        return reverse('dashboard:watchlist:detail', kwargs={'watchlist_id': self.id})
 
     class Meta:
         ordering = ['-created_at']
