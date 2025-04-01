@@ -296,40 +296,60 @@ if (typeof WatchlistManager === 'undefined') {
                     e.preventDefault();
                     
                     const formData = new FormData(form);
+                    // Get all checked stock checkboxes
                     const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
-                    // Append each stock ID individually
+                    
+                    // Debug print
+                    console.log('Selected stocks:', selectedStocks);
+                    
+                    // Clear any existing stocks field
+                    formData.delete('stocks');
+                    // Add each selected stock ID
                     selectedStocks.forEach(stockId => {
                         formData.append('stocks', stockId);
                     });
+
+                    // Debug print form data
+                    for (let pair of formData.entries()) {
+                        console.log(pair[0] + ': ' + pair[1]);
+                    }
 
                     try {
                         const response = await fetch(form.action, {
                             method: 'POST',
                             headers: {
                                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                                'X-Requested-With': 'XMLHttpRequest'
                             },
                             body: formData
                         });
 
-                        if (response.ok) {
-                            const result = await response.json();
-                            if (result.success) {
-                                // Show success message
-                                this.showAlert('success', 'Watchlist created successfully!');
-                                // Clear the form
-                                form.reset();
-                                // Clear selected stocks
-                                const selectedStocksList = document.getElementById('selectedStocksList');
-                                if (selectedStocksList) {
-                                    selectedStocksList.innerHTML = '';
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            // Show success message
+                            this.showAlert('success', 'Watchlist created successfully!');
+                            // Load the watchlist details in the main content area
+                            const mainContent = document.getElementById('mainContent');
+                            if (mainContent) {
+                                mainContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                                
+                                // Fetch the watchlist details
+                                const watchlistResponse = await fetch(result.redirect_url, {
+                                    headers: {
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    }
+                                });
+                                
+                                if (watchlistResponse.ok) {
+                                    const html = await watchlistResponse.text();
+                                    mainContent.innerHTML = html;
+                                } else {
+                                    mainContent.innerHTML = '<div class="alert alert-danger">Error loading watchlist details</div>';
                                 }
-                                // Uncheck all checkboxes
-                                document.querySelectorAll('.stock-checkbox:checked').forEach(cb => cb.checked = false);
-                            } else {
-                                this.showAlert('error', result.message || 'Failed to create watchlist');
                             }
                         } else {
-                            this.showAlert('error', 'Failed to create watchlist');
+                            this.showAlert('error', result.message || 'Failed to create watchlist');
                         }
                     } catch (error) {
                         console.error('Error creating watchlist:', error);
@@ -445,6 +465,18 @@ if (typeof WatchlistManager === 'undefined') {
                 content += `<p class="text-muted">${data.description}</p>`;
             }
             
+            // Add action buttons at the top
+            content += `
+                <div class="d-flex justify-content-end mb-3">
+                    <button class="btn btn-sm btn-outline-warning me-2" onclick="watchlistManager.editWatchlist(${this.currentWatchlistId})">
+                        <i class="fas fa-edit me-1"></i> Edit
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="watchlistManager.deleteWatchlist(${this.currentWatchlistId})">
+                        <i class="fas fa-trash me-1"></i> Delete
+                    </button>
+                </div>
+            `;
+            
             content += `
                 <div class="row mt-4">
                     <div class="col-12">
@@ -505,6 +537,51 @@ if (typeof WatchlistManager === 'undefined') {
             this.watchlistDetailsContent.innerHTML = content;
         }
 
+        // Add new methods for edit and delete functionality
+        async editWatchlist(watchlistId) {
+            // TODO: Implement edit functionality
+            console.log('Edit watchlist:', watchlistId);
+        }
+
+        async deleteWatchlist(watchlistId) {
+            if (!confirm('Are you sure you want to delete this watchlist? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/dashboard/watchlist/${watchlistId}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success message
+                    this.showAlert('success', 'Watchlist deleted successfully!');
+                    
+                    // Remove the watchlist from the UI
+                    const watchlistElement = document.querySelector(`[data-watchlist-id="${watchlistId}"]`);
+                    if (watchlistElement) {
+                        watchlistElement.remove();
+                    }
+                    
+                    // If we're on the watchlist detail page, redirect to the list
+                    if (window.location.pathname.includes(`/watchlist/${watchlistId}/`)) {
+                        window.location.href = '/dashboard/watchlist/';
+                    }
+                } else {
+                    this.showAlert('error', result.message || 'Failed to delete watchlist');
+                }
+            } catch (error) {
+                console.error('Error deleting watchlist:', error);
+                this.showAlert('error', 'An error occurred while deleting the watchlist');
+            }
+        }
+
         // Form management
         showCreateWatchlistForm() {
             AppManager.loadContent('/watchlist/create/');
@@ -530,8 +607,54 @@ if (typeof WatchlistManager === 'undefined') {
         }
 
         async removeStockFromWatchlist(watchlistId, symbol) {
-            console.log('Remove stock from watchlist:', watchlistId, symbol);
-            // TODO: Implement remove stock functionality
+            if (!confirm(`Are you sure you want to remove ${symbol} from this watchlist?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/dashboard/watchlist/${watchlistId}/remove-stock/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ symbol: symbol })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success message
+                    this.showAlert('success', `${symbol} removed from watchlist successfully!`);
+                    
+                    // Remove the stock row from the table
+                    const stockRow = document.querySelector(`tr[data-stock-symbol="${symbol}"]`);
+                    if (stockRow) {
+                        stockRow.remove();
+                    }
+                    
+                    // Update the empty state if no stocks remain
+                    const tbody = document.querySelector('.table tbody');
+                    if (tbody && tbody.children.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                                        <p class="mb-0">No stocks in this watchlist yet.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                } else {
+                    this.showAlert('error', result.message || 'Failed to remove stock from watchlist');
+                }
+            } catch (error) {
+                console.error('Error removing stock from watchlist:', error);
+                this.showAlert('error', 'An error occurred while removing the stock');
+            }
         }
     }
 

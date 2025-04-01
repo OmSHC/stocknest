@@ -4,7 +4,7 @@
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card bg-dark text-light">
+            <div class="card bg-dark text-light" data-watchlist-id="{{ watchlist.id }}">
                 <div class="card-header d-flex justify-content-between align-items-center bg-dark border-bottom border-secondary">
                     <div>
                         <h5 class="card-title mb-0">
@@ -67,7 +67,7 @@
                             </thead>
                             <tbody>
                                 {% for stock_data in stocks_with_prices %}
-                                <tr>
+                                <tr data-stock-symbol="{{ stock_data.stock.symbol }}">
                                     <td class="text-start">
                                         <span class="fw-bold">{{ stock_data.stock.symbol }}</span>
                                     </td>
@@ -84,11 +84,11 @@
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-info" onclick="viewStockDetails('{{ stock_data.stock.symbol }}')" title="View Details">
+                                            <button class="btn btn-sm btn-outline-info" onclick="window.watchlistManager.viewStockDetails('{{ stock_data.stock.symbol }}')" title="View Details">
                                                 <i class="fas fa-chart-line"></i>
                                             </button>
                                             {% if is_owner %}
-                                            <button class="btn btn-sm btn-outline-danger" onclick="removeStockFromWatchlist({{ watchlist.id }}, '{{ stock_data.stock.symbol }}')" title="Remove Stock">
+                                            <button class="btn btn-sm btn-outline-danger" onclick="window.watchlistManager.removeStockFromWatchlist({{ watchlist.id }}, '{{ stock_data.stock.symbol }}')" title="Remove Stock">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                             {% endif %}
