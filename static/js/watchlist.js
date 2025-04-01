@@ -7,6 +7,7 @@ if (typeof WatchlistManager === 'undefined') {
             this.initializeProperties();
             this.initializeModalListener();
             this.init();
+            this.handleDirectUrlAccess();
         }
 
         initializeElements() {
@@ -393,63 +394,56 @@ if (typeof WatchlistManager === 'undefined') {
             this.loadWatchlistDetails(watchlistId);
         }
 
+        handleDirectUrlAccess() {
+            // Check if we're on a watchlist detail page
+            const path = window.location.pathname;
+            const match = path.match(/\/watchlist\/(\d+)\//);
+            if (match) {
+                const watchlistId = match[1];
+                console.log('Direct URL access detected for watchlist:', watchlistId);
+                this.loadWatchlistDetails(watchlistId);
+            }
+        }
+
         async loadWatchlistDetails(watchlistId) {
-            this.currentWatchlistId = watchlistId;
-            
-            if (this.watchlistDetailsContainer) {
-                this.watchlistDetailsContainer.style.display = 'block';
-                this.watchlistDetailsLoading.style.display = 'block';
-                this.watchlistDetailsContent.innerHTML = '';
-                this.watchlistDetailsName.textContent = 'Loading...';
-                
-                try {
-                    this.watchlistDetailsContainer.scrollIntoView({ behavior: 'smooth' });
-                    
-                    const response = await fetch(`/dashboard/watchlist/${watchlistId}/`, {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-                    
-                    const contentType = response.headers.get('content-type');
-                    
-                    if (contentType && contentType.includes('text/html')) {
-                        const html = await response.text();
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        
-                        const nameElement = doc.querySelector('.card-header h4');
-                        if (nameElement) {
-                            this.watchlistDetailsName.innerHTML = nameElement.innerHTML;
-                        }
-                        
-                        const contentElement = doc.querySelector('.card-body');
-                        if (contentElement) {
-                            this.watchlistDetailsContent.innerHTML = contentElement.innerHTML;
-                        }
-                    } else {
-                        const data = await response.json();
-                        if (response.ok) {
-                            this.renderWatchlistDetails(data);
-                        } else {
-                            this.watchlistDetailsContent.innerHTML = `
-                                <div class="alert alert-danger">
-                                    Error loading watchlist details: ${data.error || 'Unknown error'}
-                                </div>
-                            `;
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error loading watchlist details:', error);
-                    this.watchlistDetailsContent.innerHTML = `
-                        <div class="alert alert-danger">
-                            Error loading watchlist details. Please try again later.
-                        </div>
-                    `;
-                } finally {
-                    this.watchlistDetailsLoading.style.display = 'none';
+            try {
+                const response = await fetch(`/watchlist/${watchlistId}/`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch watchlist details');
                 }
+                const content = await response.text();
+                
+                // Update the dashboard content area
+                const dashboardContent = document.querySelector('.dashboard-content');
+                if (dashboardContent) {
+                    // Create a temporary container to parse the HTML
+                    const tempContainer = document.createElement('div');
+                    tempContainer.innerHTML = content;
+                    
+                    // Find the mainContentWrapper div in the response
+                    const mainContentWrapper = tempContainer.querySelector('#mainContentWrapper');
+                    if (mainContentWrapper) {
+                        // Find the card-body within mainContentWrapper
+                        const cardBody = mainContentWrapper.querySelector('.card-body');
+                        if (cardBody) {
+                            // Update only the card-body content
+                            const existingCardBody = dashboardContent.querySelector('.card-body');
+                            if (existingCardBody) {
+                                existingCardBody.innerHTML = cardBody.innerHTML;
+                            }
+                        }
+                        // Update URL without page reload
+                        window.history.pushState({}, '', `/watchlist/${watchlistId}/`);
+                    } else {
+                        console.error('Main content wrapper not found in response');
+                    }
+                } else {
+                    console.error('Dashboard content area not found');
+                }
+            } catch (error) {
+                console.error('Error loading watchlist details:', error);
+                // Show error message to user
+                alert('Failed to load watchlist details. Please try again.');
             }
         }
 
@@ -461,31 +455,18 @@ if (typeof WatchlistManager === 'undefined') {
                 content += `<p class="text-muted">${data.description}</p>`;
             }
             
-            // Add action buttons at the top
-            content += `
-                <div class="d-flex justify-content-end mb-3">
-                    <button class="btn btn-sm btn-outline-warning me-2" onclick="watchlistManager.editWatchlist(${this.currentWatchlistId})">
-                        <i class="fas fa-edit me-1"></i> Edit
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="watchlistManager.deleteWatchlist(${this.currentWatchlistId})">
-                        <i class="fas fa-trash me-1"></i> Delete
-                    </button>
-                </div>
-            `;
-            
             content += `
                 <div class="row mt-4">
                     <div class="col-12">
-                        <h5 class="text-light mb-3">Stocks in Watchlist</h5>
                         <div class="table-responsive">
                             <table class="table table-dark table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Symbol</th>
-                                        <th>Name</th>
-                                        <th>Current Price</th>
-                                        <th>Change</th>
-                                        <th>Actions</th>
+                                        <th>Symbol <i class="fas fa-tag ms-1"></i></th>
+                                        <th>Price <i class="fas fa-dollar-sign ms-1"></i></th>
+                                        <th>Change <i class="fas fa-chart-line ms-1"></i></th>
+                                        <th>Volume <i class="fas fa-chart-bar ms-1"></i></th>
+                                        <th>Actions <i class="fas fa-cog ms-1"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -496,15 +477,15 @@ if (typeof WatchlistManager === 'undefined') {
                     content += `
                         <tr>
                             <td>${stock.symbol}</td>
-                            <td>${stock.name}</td>
-                            <td>${stock.current_price || 'N/A'}</td>
+                            <td>$${stock.current_price || '0.00'}</td>
                             <td>
                                 <span class="${stock.change >= 0 ? 'text-success' : 'text-danger'}">
-                                    ${stock.change_percentage ? stock.change_percentage.toFixed(2) + '%' : 'N/A'}
+                                    ${stock.change_percentage ? stock.change_percentage.toFixed(2) + '%' : '0.00%'}
                                 </span>
                             </td>
+                            <td>${stock.volume || '0'}</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-light" onclick="watchlistManager.viewStockDetails('${stock.symbol}')">
+                                <button class="btn btn-sm btn-outline-light me-2" onclick="watchlistManager.viewStockDetails('${stock.symbol}')">
                                     <i class="fas fa-chart-line"></i>
                                 </button>
                                 <button class="btn btn-sm btn-outline-danger" onclick="watchlistManager.removeStockFromWatchlist(${this.currentWatchlistId}, '${stock.symbol}')">
@@ -1050,6 +1031,24 @@ if (typeof WatchlistManager === 'undefined') {
                 console.error('Error removing stock from watchlist:', error);
                 this.showAlert('error', 'An error occurred while removing the stock');
             }
+        }
+
+        setupWatchlistClickHandlers() {
+            const watchlistLinks = document.querySelectorAll('.watchlist-link');
+            watchlistLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const watchlistId = link.dataset.watchlistId;
+                    if (watchlistId) {
+                        this.loadWatchlistDetails(watchlistId);
+                    }
+                });
+            });
+        }
+
+        initialize() {
+            this.setupEventListeners();
+            this.setupWatchlistClickHandlers();
         }
     }
 
