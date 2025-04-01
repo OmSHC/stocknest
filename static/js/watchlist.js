@@ -160,14 +160,12 @@ if (typeof WatchlistManager === 'undefined') {
 
                 checkedBoxes.forEach(checkbox => {
                     const stockItem = checkbox.closest('.stock-item');
-                    const symbol = stockItem.querySelector('.stock-symbol').textContent;
+                    const symbol = stockItem.querySelector('strong').textContent.trim();
 
                     const stockTag = document.createElement('div');
                     stockTag.className = 'selected-stock-tag';
                     stockTag.innerHTML = `
-                        <span class="stock-info">
-                            <strong>${symbol}</strong>
-                        </span>
+                        ${symbol}
                         <button type="button" class="btn-remove-stock" onclick="window.watchlistManager.removeStock('${checkbox.id}')">
                             <i class="fas fa-times"></i>
                         </button>
@@ -263,14 +261,12 @@ if (typeof WatchlistManager === 'undefined') {
                 selectedStocksList.innerHTML = '';
                 selectedCheckboxes.forEach(checkbox => {
                     const stockItem = checkbox.closest('.stock-item');
-                    const stockSymbol = stockItem.querySelector('.stock-symbol').textContent;
+                    const stockSymbol = stockItem.querySelector('strong').textContent.trim();
                     const stockId = checkbox.value;
 
                     selectedStocksList.innerHTML += `
                         <div class="selected-stock-tag" data-stock-id="${stockId}">
-                            <span class="stock-info">
-                                <strong>${stockSymbol}</strong>
-                            </span>
+                            ${stockSymbol}
                             <button type="button" class="btn-remove-stock" onclick="watchlistManager.removeSelectedStock('${stockId}')">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -409,7 +405,8 @@ if (typeof WatchlistManager === 'undefined') {
                 try {
                     this.watchlistDetailsContainer.scrollIntoView({ behavior: 'smooth' });
                     
-                    const response = await fetch(`/watchlist/${watchlistId}/`, {
+                    const response = await fetch(`/dashboard/watchlist/${watchlistId}/`, {
+                        method: 'GET',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
                         }
@@ -540,7 +537,7 @@ if (typeof WatchlistManager === 'undefined') {
         async editWatchlist(watchlistId) {
             try {
                 // Fetch watchlist details
-                const response = await fetch(`/watchlist/${watchlistId}/`, {
+                const response = await fetch(`/dashboard/watchlist/${watchlistId}/edit/`, {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
@@ -551,30 +548,393 @@ if (typeof WatchlistManager === 'undefined') {
                 }
 
                 const html = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Create and show the modal with matching styles
+                const modalHtml = `
+                    <div class="modal fade" id="editWatchlistModal" tabindex="-1" aria-labelledby="editWatchlistModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content bg-dark text-light">
+                                <div class="modal-header border-secondary">
+                                    <h5 class="modal-title" id="editWatchlistModalLabel">
+                                        <i class="fas fa-edit me-2"></i>Edit Watchlist
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="card bg-dark border-secondary">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                                        <h4 class="mb-0">
+                                                            <i class="fas fa-star text-warning me-2"></i>
+                                                            Edit Watchlist
+                                                        </h4>
+                                                    </div>
+                                                    ${html}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-secondary">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-primary" onclick="watchlistManager.updateWatchlist(${watchlistId})">
+                                        <i class="fas fa-save me-2"></i>Update Watchlist
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
 
-                // Get watchlist data
-                const watchlistName = doc.querySelector('.card-header h4').textContent.trim();
-                const description = doc.querySelector('.card-body p')?.textContent.trim() || '';
-                const stocks = Array.from(doc.querySelectorAll('tbody tr')).map(row => ({
-                    symbol: row.querySelector('td:first-child').textContent.trim(),
-                    name: row.querySelector('td:nth-child(2)').textContent.trim()
-                }));
+                // Remove existing modal if any
+                const existingModal = document.getElementById('editWatchlistModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
 
-                // Store data in sessionStorage for the create page
-                sessionStorage.setItem('editWatchlistData', JSON.stringify({
-                    id: watchlistId,
-                    name: watchlistName,
-                    description: description,
-                    stocks: stocks
-                }));
+                // Add new modal to body
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-                // Navigate to create page
-                window.location.href = '/dashboard/watchlist/create/';
+                // Initialize the modal
+                const modal = new bootstrap.Modal(document.getElementById('editWatchlistModal'));
+                modal.show();
+
+                // Initialize stock search functionality for the edit modal
+                const editModal = document.getElementById('editWatchlistModal');
+                const searchInput = editModal.querySelector('#stockSearch');
+                const stockItems = editModal.querySelectorAll('.stock-item');
+                const noResults = editModal.querySelector('#noResults');
+                const searchLoading = editModal.querySelector('#searchLoading');
+                const selectedStocksList = editModal.querySelector('#selectedStocksList');
+                const selectedCount = editModal.querySelector('#selectedCount');
+
+                console.log('Edit Modal Elements:', {
+                    searchInput: !!searchInput,
+                    stockItems: stockItems.length,
+                    noResults: !!noResults,
+                    searchLoading: !!searchLoading,
+                    selectedStocksList: !!selectedStocksList,
+                    selectedCount: !!selectedCount
+                });
+
+                // Hide all stocks by default
+                stockItems.forEach(item => {
+                    item.style.display = 'none';
+                });
+
+                if (searchInput) {
+                    let searchTimeout;
+                    searchInput.addEventListener('input', (e) => {
+                        const searchText = e.target.value.toLowerCase().trim();
+                        console.log('Search Text:', searchText);
+                        
+                        // Show loading indicator
+                        if (searchLoading) searchLoading.style.display = 'block';
+                        if (noResults) noResults.style.display = 'none';
+
+                        // Clear previous timeout
+                        clearTimeout(searchTimeout);
+
+                        // Set new timeout to prevent too many updates
+                        searchTimeout = setTimeout(() => {
+                            let matchFound = false;
+                            console.log('Processing search with timeout');
+
+                            // Hide all items if search text is less than 3 characters
+                            if (searchText.length < 3) {
+                                stockItems.forEach(item => {
+                                    item.style.display = 'none';
+                                });
+                                if (searchLoading) searchLoading.style.display = 'none';
+                                if (noResults) noResults.style.display = 'none';
+                                return;
+                            }
+
+                            stockItems.forEach((item, index) => {
+                                // Get the stock name and symbol from the label text
+                                const label = item.querySelector('.form-check-label');
+                                if (!label) {
+                                    console.log(`Stock ${index + 1} missing label element`);
+                                    return;
+                                }
+
+                                const labelText = label.textContent.toLowerCase();
+                                console.log(`Stock ${index + 1} label text:`, labelText);
+                                
+                                if (labelText.includes(searchText)) {
+                                    item.style.display = 'block';
+                                    matchFound = true;
+                                    console.log(`Stock ${index + 1} shown (matched search)`);
+                                } else {
+                                    item.style.display = 'none';
+                                    console.log(`Stock ${index + 1} hidden (no match)`);
+                                }
+                            });
+
+                            // Hide loading indicator
+                            if (searchLoading) searchLoading.style.display = 'none';
+
+                            // Show/hide no results message
+                            if (noResults) {
+                                const shouldShowNoResults = searchText.length >= 3 && !matchFound;
+                                noResults.style.display = shouldShowNoResults ? 'block' : 'none';
+                                console.log('No Results Display:', shouldShowNoResults);
+                            }
+
+                            console.log('Search Complete:', {
+                                matchFound,
+                                searchText,
+                                visibleItems: Array.from(stockItems).filter(item => item.style.display !== 'none').length
+                            });
+                        }, 300);
+                    });
+                } else {
+                    console.error('Search input element not found in edit modal');
+                }
+
+                // Initialize stock selection functionality
+                const stockCheckboxes = editModal.querySelectorAll('.stock-checkbox');
+
+                // Set initial checked state based on existing selected stocks
+                stockCheckboxes.forEach(checkbox => {
+                    const stockId = checkbox.value;
+                    const existingStock = selectedStocksList.querySelector(`.selected-stock-tag[data-stock-id="${stockId}"]`);
+                    if (existingStock) {
+                        checkbox.checked = true;
+                    }
+                });
+
+                // Update selected count initially
+                if (selectedCount) {
+                    const checkedBoxes = editModal.querySelectorAll('.stock-checkbox:checked');
+                    selectedCount.textContent = checkedBoxes.length;
+                }
+
+                stockCheckboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', () => {
+                        const checkedBoxes = editModal.querySelectorAll('.stock-checkbox:checked');
+                        if (selectedCount) {
+                            selectedCount.textContent = checkedBoxes.length;
+                        }
+                        if (selectedStocksList) {
+                            if (checkbox.checked) {
+                                // Only add the new stock if it's checked and not already in the list
+                                const stockId = checkbox.value;
+                                const existingTag = selectedStocksList.querySelector(`.selected-stock-tag[data-stock-id="${stockId}"]`);
+                                if (!existingTag) {
+                                    const stockItem = checkbox.closest('.stock-item');
+                                    const stockSymbol = stockItem.querySelector('strong').textContent.trim();
+                                    const stockTag = `
+                                        <div class="selected-stock-tag" data-stock-id="${stockId}">
+                                            ${stockSymbol}
+                                            <button type="button" class="btn-remove-stock" onclick="watchlistManager.removeSelectedStock('${stockId}')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    `;
+                                    selectedStocksList.insertAdjacentHTML('beforeend', stockTag);
+                                }
+                            } else {
+                                // Remove the stock tag if unchecked
+                                const stockId = checkbox.value;
+                                const stockTag = selectedStocksList.querySelector(`.selected-stock-tag[data-stock-id="${stockId}"]`);
+                                if (stockTag) {
+                                    stockTag.remove();
+                                }
+                            }
+                        }
+                    });
+                });
+
+                // Initialize remove stock functionality
+                const removeStockButtons = editModal.querySelectorAll('.btn-remove-stock');
+                removeStockButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const stockId = button.closest('.selected-stock-tag').dataset.stockId;
+                        const checkbox = editModal.querySelector(`.stock-checkbox[value="${stockId}"]`);
+                        if (checkbox) {
+                            checkbox.checked = false;
+                            const event = new Event('change');
+                            checkbox.dispatchEvent(event);
+                        }
+                    });
+                });
+
+                // Add custom styles to match watchlist details
+                const style = document.createElement('style');
+                style.textContent = `
+                    .modal-content {
+                        background-color: #1a1a1a !important;
+                        border-color: #2d2d2d !important;
+                    }
+                    .modal-header {
+                        border-bottom-color: #2d2d2d !important;
+                    }
+                    .modal-footer {
+                        border-top-color: #2d2d2d !important;
+                    }
+                    .card {
+                        background-color: #1a1a1a !important;
+                        border-color: #2d2d2d !important;
+                    }
+                    .card-body {
+                        padding: 1.5rem;
+                    }
+                    .form-control, .form-select {
+                        background-color: #2d2d2d !important;
+                        border-color: #3d3d3d !important;
+                        color: #ffffff !important;
+                        padding: 0.75rem 1rem;
+                    }
+                    .form-control:focus, .form-select:focus {
+                        background-color: #2d2d2d !important;
+                        border-color: #0d6efd !important;
+                        color: #ffffff !important;
+                        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+                    }
+                    .form-label {
+                        color: #ffffff !important;
+                        font-weight: 500;
+                        margin-bottom: 0.5rem;
+                    }
+                    .stock-list-container {
+                        background-color: #2d2d2d !important;
+                        border: 1px solid #3d3d3d !important;
+                        border-radius: 0.375rem;
+                        max-height: 300px;
+                        overflow-y: auto;
+                    }
+                    .stock-item {
+                        border-bottom: 1px solid #3d3d3d !important;
+                        padding: 0.75rem 1rem;
+                    }
+                    .stock-item:last-child {
+                        border-bottom: none !important;
+                    }
+                    .stock-item:hover {
+                        background-color: #363636 !important;
+                    }
+                    .selected-stock-tag {
+                        background-color: #2d2d2d !important;
+                        border: 1px solid #3d3d3d !important;
+                        color: #ffffff !important;
+                        padding: 0.25rem 0.5rem !important;
+                        margin: 0.25rem;
+                        border-radius: 0.25rem;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.25rem;
+                        font-size: 0.875rem;
+                    }
+                    .stock-info {
+                        font-weight: 500;
+                    }
+                    .btn-remove-stock {
+                        color: #dc3545 !important;
+                        padding: 0 0.25rem !important;
+                        border: none;
+                        background: none;
+                        cursor: pointer;
+                        display: inline-flex;
+                        align-items: center;
+                    }
+                    .btn-remove-stock:hover {
+                        color: #ff6b6b !important;
+                    }
+                    .stock-symbol {
+                        font-weight: 600;
+                        color: #ffffff;
+                    }
+                    .stock-name {
+                        color: #adb5bd;
+                        font-size: 0.875rem;
+                    }
+                    .form-check {
+                        margin: 0;
+                    }
+                    .form-check-input {
+                        background-color: #3d3d3d !important;
+                        border-color: #4d4d4d !important;
+                    }
+                    .form-check-input:checked {
+                        background-color: #0d6efd !important;
+                        border-color: #0d6efd !important;
+                    }
+                    .form-check-label {
+                        color: #ffffff !important;
+                        margin-left: 0.5rem;
+                    }
+                    .btn-primary {
+                        background-color: #0d6efd !important;
+                        border-color: #0d6efd !important;
+                    }
+                    .btn-primary:hover {
+                        background-color: #0b5ed7 !important;
+                        border-color: #0a58ca !important;
+                    }
+                    .btn-secondary {
+                        background-color: #6c757d !important;
+                        border-color: #6c757d !important;
+                    }
+                    .btn-secondary:hover {
+                        background-color: #5c636a !important;
+                        border-color: #565e64 !important;
+                    }
+                `;
+                document.head.appendChild(style);
             } catch (error) {
-                console.error('Error preparing watchlist edit:', error);
-                this.showAlert('error', 'Failed to load watchlist details for editing');
+                console.error('Error loading edit form:', error);
+                this.showAlert('error', 'Failed to load edit form');
+            }
+        }
+
+        async updateWatchlist(watchlistId) {
+            const form = document.getElementById('editWatchlistForm');
+            if (!form) {
+                this.showAlert('error', 'Edit form not found');
+                return;
+            }
+
+            const formData = new FormData(form);
+            
+            // Get all checked stock checkboxes
+            const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
+            formData.delete('stocks'); // Remove the original stocks field
+            selectedStocks.forEach(stockId => formData.append('stocks', stockId));
+
+            try {
+                const response = await fetch(`/dashboard/watchlist/${watchlistId}/edit/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success message
+                    this.showAlert('success', 'Watchlist updated successfully!');
+                    
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editWatchlistModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                    
+                    // Reload the page to show updated data
+                    window.location.reload();
+                } else {
+                    this.showAlert('error', result.message || 'Failed to update watchlist');
+                }
+            } catch (error) {
+                console.error('Error updating watchlist:', error);
+                this.showAlert('error', 'An error occurred while updating the watchlist');
             }
         }
 
@@ -584,7 +944,7 @@ if (typeof WatchlistManager === 'undefined') {
             }
 
             try {
-                const response = await fetch(`/watchlist/${watchlistId}/delete/`, {
+                const response = await fetch(`/dashboard/watchlist/${watchlistId}/delete/`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
@@ -647,7 +1007,7 @@ if (typeof WatchlistManager === 'undefined') {
             }
 
             try {
-                const response = await fetch(`/watchlist/${watchlistId}/remove-stock/`, {
+                const response = await fetch(`/dashboard/watchlist/${watchlistId}/remove-stock/`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
