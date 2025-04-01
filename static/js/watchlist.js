@@ -409,8 +409,7 @@ if (typeof WatchlistManager === 'undefined') {
                 try {
                     this.watchlistDetailsContainer.scrollIntoView({ behavior: 'smooth' });
                     
-                    const response = await fetch(`/dashboard/watchlist/${watchlistId}/`, {
-                        method: 'GET',
+                    const response = await fetch(`/watchlist/${watchlistId}/`, {
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
                         }
@@ -539,8 +538,44 @@ if (typeof WatchlistManager === 'undefined') {
 
         // Add new methods for edit and delete functionality
         async editWatchlist(watchlistId) {
-            // TODO: Implement edit functionality
-            console.log('Edit watchlist:', watchlistId);
+            try {
+                // Fetch watchlist details
+                const response = await fetch(`/watchlist/${watchlistId}/`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch watchlist details');
+                }
+
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // Get watchlist data
+                const watchlistName = doc.querySelector('.card-header h4').textContent.trim();
+                const description = doc.querySelector('.card-body p')?.textContent.trim() || '';
+                const stocks = Array.from(doc.querySelectorAll('tbody tr')).map(row => ({
+                    symbol: row.querySelector('td:first-child').textContent.trim(),
+                    name: row.querySelector('td:nth-child(2)').textContent.trim()
+                }));
+
+                // Store data in sessionStorage for the create page
+                sessionStorage.setItem('editWatchlistData', JSON.stringify({
+                    id: watchlistId,
+                    name: watchlistName,
+                    description: description,
+                    stocks: stocks
+                }));
+
+                // Navigate to create page
+                window.location.href = '/dashboard/watchlist/create/';
+            } catch (error) {
+                console.error('Error preparing watchlist edit:', error);
+                this.showAlert('error', 'Failed to load watchlist details for editing');
+            }
         }
 
         async deleteWatchlist(watchlistId) {
@@ -549,7 +584,7 @@ if (typeof WatchlistManager === 'undefined') {
             }
 
             try {
-                const response = await fetch(`/dashboard/watchlist/${watchlistId}/delete/`, {
+                const response = await fetch(`/watchlist/${watchlistId}/delete/`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
@@ -612,7 +647,7 @@ if (typeof WatchlistManager === 'undefined') {
             }
 
             try {
-                const response = await fetch(`/dashboard/watchlist/${watchlistId}/remove-stock/`, {
+                const response = await fetch(`/watchlist/${watchlistId}/remove-stock/`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
