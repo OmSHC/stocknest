@@ -26,7 +26,7 @@ def watchlist(request):
         'stocks': stocks,
     }
     
-    return render(request, 'dashboard/watchlist.html', context)
+    return render(request, 'watchlist/watchlist.html', context)
 
 @login_required
 def watchlist_detail(request, watchlist_id):
@@ -58,9 +58,9 @@ def watchlist_detail(request, watchlist_id):
     
     # Check if it's an AJAX request
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render(request, 'dashboard/watchlist_detail_content.html', context)
+        return render(request, 'watchlist/watchlist_detail_content.html', context)
     
-    return render(request, 'dashboard/watchlist_detail.html', context)
+    return render(request, 'watchlist/watchlist_detail.html', context)
 
 @login_required
 def create_watchlist(request):
@@ -316,7 +316,7 @@ def edit_watchlist(request, watchlist_id):
             'watchlist': watchlist,
             'stocks': stocks,
         }
-        return render(request, 'dashboard/edit_watchlist_content.html', context)
+        return render(request, 'watchlist/edit_watchlist_content.html', context)
     
     elif request.method == 'POST':
         name = request.POST.get('name')
