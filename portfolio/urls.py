@@ -23,7 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('dashboard.urls')),  # Include dashboard URLs at root for the main dashboard
     path('dashboard/', include('dashboard.urls')),  # Also include with dashboard/ prefix for compatibility
-    path('login/', views.login_view, name='login'),
+    path('login/', auth_views.LoginView.as_view(template_name='dashboard/login.html', next_page='dashboard:dashboard'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('signup/', views.signup, name='signup'),
 ]

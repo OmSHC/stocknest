@@ -1,3 +1,207 @@
+// Common utility functions
+const AppManager = {
+    // Initialize the application
+    init() {
+        this.initializeEventListeners();
+        this.initializeSidebarState();
+    },
+
+    // Initialize event listeners
+    initializeEventListeners() {
+        // Handle sidebar navigation
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+            if (!link.classList.contains('user-toggle')) {
+                link.addEventListener('click', (e) => this.handleSidebarNavigation(e));
+            }
+        });
+
+        // Handle refresh button clicks
+        document.addEventListener('click', (e) => this.handleRefreshClick(e));
+    },
+
+    // Initialize sidebar state
+    initializeSidebarState() {
+        const activePanelId = localStorage.getItem('activePanelId');
+        if (activePanelId) {
+            this.showPanel(activePanelId);
+        }
+    },
+
+    // Handle sidebar navigation
+    handleSidebarNavigation(e) {
+        e.preventDefault();
+        const panel = e.currentTarget.getAttribute('data-panel');
+        switch(panel) {
+            case 'watchlist':
+                this.showWatchlist();
+                break;
+            case 'portfolio':
+                this.showPortfolio();
+                break;
+            case 'market-insights':
+                this.showMarket();
+                break;
+            case 'risk-analysis':
+                this.showRisk();
+                break;
+            case 'reports':
+                this.showReports();
+                break;
+            default:
+                this.showDashboard();
+        }
+    },
+
+    // Handle refresh button clicks
+    handleRefreshClick(e) {
+        const refreshButton = e.target.closest('.btn-refresh');
+        if (refreshButton) {
+            e.preventDefault();
+            const currentPath = window.location.pathname;
+            
+            if (currentPath.includes('watchlist:create')) {
+                return;
+            }
+            
+            this.loadContent(currentPath);
+        }
+    },
+
+    // Show different panels
+    showPanel(panelId) {
+        // Hide all panels first
+        document.querySelectorAll('.middle-sidebar-panel, .watchlist-section, .portfolio-section, .market-section, .risk-section, .reports-section').forEach(panel => {
+            panel.style.display = 'none';
+        });
+
+        // Show the requested panel
+        const panel = document.getElementById(panelId) || document.querySelector(`.${panelId}`);
+        if (panel) {
+            panel.style.display = 'block';
+            this.updateHeaderTitle(panelId);
+        }
+    },
+
+    // Update header title based on panel
+    updateHeaderTitle(panelId) {
+        // Remove header title update since we removed the header
+        return;
+    },
+
+    // Show different sections
+    showDashboard() {
+        this.hideAllSections();
+        document.getElementById('dashboardStats').style.display = 'block';
+        document.querySelector('.dashboard-content').style.display = 'block';
+        this.updateHeaderTitle('dashboardPanel');
+    },
+
+    showWatchlist() {
+        this.hideAllSections();
+        document.getElementById('watchlistStats').style.display = 'block';
+        document.querySelector('.watchlist-section').style.display = 'block';
+        document.querySelector('.watchlist-content').style.display = 'block';
+        this.updateHeaderTitle('watchlistPanel');
+    },
+
+    showPortfolio() {
+        this.hideAllSections();
+        document.getElementById('portfolioStats').style.display = 'block';
+        document.querySelector('.portfolio-section').style.display = 'block';
+        document.querySelector('.portfolio-content').style.display = 'block';
+        this.updateHeaderTitle('portfolioPanel');
+    },
+
+    showMarket() {
+        this.hideAllSections();
+        document.getElementById('marketStats').style.display = 'block';
+        document.querySelector('.market-section').style.display = 'block';
+        document.querySelector('.market-content').style.display = 'block';
+        this.updateHeaderTitle('marketPanel');
+    },
+
+    showRisk() {
+        this.hideAllSections();
+        document.getElementById('riskStats').style.display = 'block';
+        document.querySelector('.risk-section').style.display = 'block';
+        document.querySelector('.risk-content').style.display = 'block';
+        this.updateHeaderTitle('riskPanel');
+    },
+
+    showReports() {
+        this.hideAllSections();
+        document.getElementById('reportsStats').style.display = 'block';
+        document.querySelector('.reports-section').style.display = 'block';
+        document.querySelector('.reports-content').style.display = 'block';
+        this.updateHeaderTitle('reportsPanel');
+    },
+
+    // Hide all sections
+    hideAllSections() {
+        document.querySelectorAll('.section-stats-card').forEach(card => card.style.display = 'none');
+        document.querySelectorAll('.watchlist-section, .portfolio-section, .market-section, .risk-section, .reports-section').forEach(section => section.style.display = 'none');
+    },
+
+    // Load content via AJAX
+    loadContent(url) {
+        const mainContent = document.getElementById('mainContentWrapper');
+        
+        // Show loading indicator
+        mainContent.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `;
+        
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            mainContent.innerHTML = html;
+            history.pushState({}, '', url);
+            
+            // Reinitialize any necessary scripts
+            if (typeof initializeScripts === 'function') {
+                initializeScripts();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading content:', error);
+            mainContent.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    An error occurred while loading the content. Please try again.
+                </div>
+            `;
+        });
+    },
+
+    // Show alert message
+    showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const mainContent = document.getElementById('mainContentWrapper');
+        mainContent.insertBefore(alertDiv, mainContent.firstChild);
+        
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+};
+
+// Initialize the application when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    AppManager.init();
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     // Sidebar Toggle
     const sidebarToggle = document.getElementById('sidebar-toggle');
@@ -112,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Handle create watchlist links
-    document.querySelectorAll('a[href*="create_watchlist"]').forEach(link => {
+    document.querySelectorAll('a[href*="watchlist:create"]').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             
@@ -138,33 +342,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle refresh button clicks
-    document.addEventListener('click', function(e) {
-        const refreshButton = e.target.closest('.btn-refresh');
-        if (refreshButton) {
+    // Function to show create watchlist form
+    function showCreateWatchlistForm() {
+        loadContent('{% url "dashboard:watchlist:create_content" %}');
+    }
+
+    // Add click handler to create watchlist button
+    const createWatchlistBtn = document.querySelector('[data-action="create-watchlist"]');
+    if (createWatchlistBtn) {
+        createWatchlistBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            
-            // Get the current page URL without any parameters
-            const currentPath = window.location.pathname;
-            
-            // If we're on the create watchlist page, don't refresh
-            if (currentPath.includes('create_watchlist')) {
-                return;
-            }
-            
-            // Otherwise refresh the current page content
-            fetch(currentPath, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('mainContentWrapper').innerHTML = html;
-            })
-            .catch(error => {
-                console.error('Error refreshing content:', error);
-            });
-        }
-    });
+            showCreateWatchlistForm();
+        });
+    }
+
+    // Initialize other functionality
+    console.log('Main.js loaded');
 }); 

@@ -977,9 +977,12 @@ if (typeof WatchlistManager === 'undefined') {
         }
 
         // Stock management
-        async viewStockDetails(symbol) {
-            console.log('View stock details:', symbol);
-            // TODO: Implement stock details view
+        viewStockDetails(symbol) {
+            // Format the symbol for TradingView (add NSE suffix for Indian stocks)
+            const tradingViewSymbol = `NSE:${symbol}`;
+            
+            // Open TradingView chart in a new tab
+            window.open(`https://www.tradingview.com/chart/?symbol=${tradingViewSymbol}`, '_blank');
         }
 
         async removeStockFromWatchlist(watchlistId, symbol) {

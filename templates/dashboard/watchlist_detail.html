@@ -1,309 +1,172 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}{{ watchlist.name }} - Watchlist Details{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/watchlist.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-start mb-3">
-                <a href="{% url 'dashboard:watchlist' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Watchlists
-                </a>
-            </div>
-            
-            <div class="card bg-dark text-light mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">
-                        <i class="fas fa-star text-warning me-2"></i>{{ watchlist.name }}
-                    </h4>
-                    <div class="btn-group">
-                        {% if is_owner %}
-                            <button class="btn btn-outline-light btn-sm" onclick="editWatchlist({{ watchlist.id }})">
-                                <i class="fas fa-edit me-2"></i>Edit
-                            </button>
-                            <button class="btn btn-outline-danger btn-sm" onclick="deleteWatchlist({{ watchlist.id }})">
-                                <i class="fas fa-trash me-2"></i>Delete
-                            </button>
-                        {% else %}
-                            {% if is_subscriber %}
-                                <button class="btn btn-outline-danger btn-sm" onclick="unsubscribeWatchlist({{ watchlist.id }})">
-                                    <i class="fas fa-minus-circle me-2"></i>Unsubscribe
-                                </button>
-                            {% else %}
-                                <button class="btn btn-outline-success btn-sm" onclick="subscribeWatchlist({{ watchlist.id }})">
-                                    <i class="fas fa-plus-circle me-2"></i>Subscribe
-                                </button>
+<div id="mainContent">
+    <div class="main-content-area">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card bg-dark text-light mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0">
+                                <i class="fas fa-star text-warning me-2"></i>{{ watchlist.name }}
+                                <small class="text-muted ms-2">({{ total_stocks }} stocks)</small>
+                            </h4>
+                            <div class="badge bg-{% if watchlist.is_global %}success{% else %}primary{% endif %}">
+                                {{ watchlist.is_global|yesno:"Public,Private" }}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if watchlist.description %}
+                                <p class="text-muted mb-0">{{ watchlist.description }}</p>
                             {% endif %}
-                        {% endif %}
+                        </div>
                     </div>
-                </div>
-                <div class="card-body">
-                    {% if watchlist.description %}
-                        <p class="text-muted">{{ watchlist.description }}</p>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="card bg-dark text-light">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-table me-2 text-info"></i>Stocks in Watchlist
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Symbol</th>
-                                    <th>Name</th>
-                                    <th>Sector</th>
-                                    <th>Current Price</th>
-                                    <th>Change</th>
-                                    <th>Volume</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for stock_data in stocks_with_prices %}
-                                    <tr>
-                                        <td>{{ stock_data.stock.symbol }}</td>
-                                        <td>{{ stock_data.stock.name }}</td>
-                                        <td>{{ stock_data.stock.sector }}</td>
-                                        <td>
-                                            {% if stock_data.latest_price %}
-                                                ₹{{ stock_data.latest_price.close_price }}
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if stock_data.latest_price %}
-                                                <span class="{% if stock_data.latest_price.price_change >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                                    {% if stock_data.latest_price.price_change >= 0 %}+{% endif %}{{ stock_data.latest_price.price_change_percentage|floatformat:2 }}%
-                                                </span>
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if stock_data.latest_price %}
-                                                {{ stock_data.latest_price.volume }}
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <button class="btn btn-sm btn-outline-info" onclick="viewStockDetails('{{ stock_data.stock.symbol }}')">
-                                                    <i class="fas fa-chart-line"></i>
-                                                </button>
-                                                {% if is_owner %}
-                                                    <button class="btn btn-sm btn-outline-danger" onclick="removeStock({{ watchlist.id }}, '{{ stock_data.stock.symbol }}')">
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% empty %}
-                                    <tr>
-                                        <td colspan="7" class="text-center">No stocks in this watchlist yet.</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    
+                    <div class="card bg-dark text-light">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-table me-2 text-info"></i>Stocks
+                            </h5>
+                            <small class="text-muted">Last updated: {{ watchlist.updated_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                        <div class="card-body">
+                            {% if stocks_with_prices %}
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>Symbol</th>
+                                                <th>Name</th>
+                                                <th>Sector</th>
+                                                <th class="text-end">Current Price</th>
+                                                <th class="text-end">Change</th>
+                                                <th class="text-end">Volume</th>
+                                                <th class="text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for stock_data in stocks_with_prices %}
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ stock_data.stock.symbol }}</strong>
+                                                    </td>
+                                                    <td>{{ stock_data.stock.name }}</td>
+                                                    <td>
+                                                        <span class="badge bg-secondary">{{ stock_data.stock.sector }}</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {% if stock_data.latest_price %}
+                                                            ₹{{ stock_data.latest_price.close_price|floatformat:2 }}
+                                                        {% else %}
+                                                            <span class="text-muted">N/A</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {% if stock_data.latest_price %}
+                                                            <span class="{% if stock_data.latest_price.change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                                {{ stock_data.latest_price.change|floatformat:2 }}%
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="text-muted">N/A</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-end">
+                                                        {% if stock_data.latest_price %}
+                                                            {{ stock_data.latest_price.volume|intcomma }}
+                                                        {% else %}
+                                                            <span class="text-muted">N/A</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <div class="btn-group">
+                                                            <button class="btn btn-sm btn-outline-info" onclick="viewStockDetails('{{ stock_data.stock.symbol }}')" title="View Details">
+                                                                <i class="fas fa-chart-line"></i>
+                                                            </button>
+                                                            {% if is_owner %}
+                                                                <button class="btn btn-sm btn-outline-danger" onclick="removeStockFromWatchlist({{ watchlist.id }}, '{{ stock_data.stock.symbol }}')" title="Remove Stock">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-list text-muted mb-3" style="font-size: 3rem;"></i>
+                                    <h5 class="text-muted">No stocks in this watchlist yet</h5>
+                                    {% if is_owner %}
+                                        <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addStocksModal">
+                                            <i class="fas fa-plus-circle me-2"></i>Add Stocks
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
                     </div>
-                </div>
-                <div class="card-footer">
-                    {% if is_owner %}
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStockModal">
-                            <i class="fas fa-plus-circle me-2"></i>Add Stock
-                        </button>
-                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Add Stock Modal -->
-<div class="modal fade" id="addStockModal" tabindex="-1" aria-labelledby="addStockModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+{% if is_owner %}
+<!-- Add Stocks Modal -->
+<div class="modal fade" id="addStocksModal" tabindex="-1" aria-labelledby="addStocksModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark text-light">
             <div class="modal-header">
-                <h5 class="modal-title" id="addStockModalLabel">Add Stock to Watchlist</h5>
+                <h5 class="modal-title" id="addStocksModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>Add Stocks to Watchlist
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
                     <label for="stockSearch" class="form-label">Search Stocks</label>
-                    <input type="text" class="form-control" id="stockSearch" placeholder="Search by symbol or name...">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="stockSearch" placeholder="Type at least 3 characters to search...">
+                        <button class="btn btn-primary" type="button" id="addStock">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
                 </div>
-                <div id="stockSearchResults" class="list-group mt-3">
+                <div id="stockSearchResults" class="mt-3">
                     <!-- Search results will appear here -->
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="addSelectedStocks">Add Selected</button>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
+<!-- Load watchlist.js first -->
+<script src="{% static 'js/watchlist.js' %}"></script>
+
 <script>
-    // Functions for watchlist management
-    function editWatchlist(watchlistId) {
-        console.log('Edit watchlist:', watchlistId);
-        // Implement edit functionality
-    }
-    
-    function deleteWatchlist(watchlistId) {
-        if (confirm('Are you sure you want to delete this watchlist?')) {
-            console.log('Delete watchlist:', watchlistId);
-            // Implement delete functionality
-            // window.location.href = '/dashboard/watchlist/';
-        }
-    }
-    
-    function subscribeWatchlist(watchlistId) {
-        console.log('Subscribe to watchlist:', watchlistId);
-        // Implement subscribe functionality
-    }
-    
-    function unsubscribeWatchlist(watchlistId) {
-        if (confirm('Are you sure you want to unsubscribe from this watchlist?')) {
-            console.log('Unsubscribe from watchlist:', watchlistId);
-            // Implement unsubscribe functionality
-        }
-    }
-    
-    function viewStockDetails(symbol) {
-        console.log('View stock details:', symbol);
-        // Implement stock details view
-    }
-    
-    function removeStock(watchlistId, symbol) {
-        if (confirm(`Are you sure you want to remove ${symbol} from this watchlist?`)) {
-            console.log('Remove stock:', symbol, 'from watchlist:', watchlistId);
-            // Implement stock removal
-        }
-    }
-    
-    // Stock search functionality
+    // Initialize WatchlistManager after the script is loaded
     document.addEventListener('DOMContentLoaded', function() {
-        // Always force watchlist panel to be active on watchlist detail page
-        localStorage.setItem('activePanelId', 'watchlistPanel');
-        console.log('🔍 Watchlist detail page loaded: activePanelId set to watchlistPanel');
-        
-        // Restore middle sidebar state with watchlist panel always active
-        const panels = document.querySelectorAll('.middle-sidebar-panel, .watchlist-section, .portfolio-section, .market-section, .risk-section, .reports-section');
-        if (panels && panels.length > 0) {
-            // First hide all panels
-            panels.forEach(panel => {
-                panel.style.display = 'none';
-            });
-            
-            // Then specifically find the watchlist section and show it
-            let watchlistPanelFound = false;
-            
-            // First try to find the watchlist section by class
-            const watchlistSection = document.querySelector('.watchlist-section');
-            if (watchlistSection) {
-                watchlistSection.style.display = 'block';
-                watchlistPanelFound = true;
-                console.log('✅ Found and displayed watchlist-section');
-            }
-            
-            // If not found, try to find it by ID
-            if (!watchlistPanelFound) {
-                const watchlistPanel = document.getElementById('watchlistPanel');
-                if (watchlistPanel) {
-                    watchlistPanel.style.display = 'block';
-                    watchlistPanelFound = true;
-                    console.log('✅ Found and displayed watchlistPanel');
-                }
-            }
-            
-            // Update header title for watchlist
-            const headerTitle = document.querySelector('.middle-sidebar-header h4');
-            if (headerTitle) {
-                headerTitle.textContent = 'My Watchlists';
-                console.log('✅ Updated header title to My Watchlists');
-            }
-            
-            // Double-check after a slight delay to ensure state is maintained
-            setTimeout(() => {
-                const activePanelId = localStorage.getItem('activePanelId');
-                if (activePanelId !== 'watchlistPanel') {
-                    console.log('🛠️ Fixing activePanelId (was ' + activePanelId + ')');
-                    localStorage.setItem('activePanelId', 'watchlistPanel');
-                }
-                
-                // Make sure watchlist section is visible
-                const stillVisible = document.querySelector('.watchlist-section[style*="display: block"]');
-                if (!stillVisible) {
-                    console.log('🛠️ Re-showing watchlist section');
-                    const section = document.querySelector('.watchlist-section');
-                    if (section) section.style.display = 'block';
-                }
-            }, 500);
-        }
-        
-        const stockSearch = document.getElementById('stockSearch');
-        const searchResults = document.getElementById('stockSearchResults');
-        const addSelectedBtn = document.getElementById('addSelectedStocks');
-        
-        if (stockSearch) {
-            stockSearch.addEventListener('input', function() {
-                const query = this.value.trim();
-                if (query.length < 2) {
-                    searchResults.innerHTML = '';
-                    return;
-                }
-                
-                // Search for stocks
-                fetch(`/dashboard/api/search-stocks/?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        searchResults.innerHTML = '';
-                        data.results.forEach(stock => {
-                            const item = document.createElement('div');
-                            item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-dark text-light';
-                            item.innerHTML = `
-                                <div>
-                                    <strong>${stock.symbol}</strong> - ${stock.name}
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input stock-checkbox" type="checkbox" value="${stock.symbol}" id="stock-${stock.symbol}">
-                                </div>
-                            `;
-                            searchResults.appendChild(item);
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error searching stocks:', error);
-                        searchResults.innerHTML = '<div class="alert alert-danger">Error searching stocks</div>';
-                    });
-            });
-        }
-        
-        if (addSelectedBtn) {
-            addSelectedBtn.addEventListener('click', function() {
-                const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
-                if (selectedStocks.length === 0) {
-                    alert('Please select at least one stock to add.');
-                    return;
-                }
-                
-                console.log('Add stocks to watchlist:', selectedStocks);
-                // Implement adding stocks to watchlist
-            });
+        if (typeof WatchlistManager !== 'undefined') {
+            window.watchlistManager = new WatchlistManager();
+        } else {
+            console.error('WatchlistManager class not found. Make sure watchlist.js is loaded.');
         }
     });
 </script>

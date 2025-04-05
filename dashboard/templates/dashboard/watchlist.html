@@ -30,10 +30,11 @@
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <h6 class="card-title text-light mb-0">
                                                 <i class="fas fa-list text-primary me-2"></i>
-                                                <a href="{% url 'dashboard:watchlist_detail' watchlist.id %}" 
-                                                   class="watchlist-name text-light text-decoration-none">
-                                                    {{ watchlist.name }}
-                                                </a>
+                                                <div class="watchlist-item">
+                                                    <a href="#" class="watchlist-link" data-watchlist-id="{{ watchlist.id }}">
+                                                        {{ watchlist.name }}
+                                                    </a>
+                                                </div>
                                             </h6>
                                             <span class="badge bg-primary">{{ watchlist.stocks.count }} stocks</span>
                                         </div>
