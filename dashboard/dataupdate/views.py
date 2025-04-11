@@ -11,6 +11,8 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 import time
+from background_task import background
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -221,6 +223,11 @@ def fetch_stock_data(symbol, start_date=None, end_date=None):
         if start_date is None:
             start_date = end_date - timedelta(days=400)
             
+        # Ensure we're not trying to fetch future dates
+        today = datetime.now().date()
+        if end_date > today:
+            end_date = today
+            
         print(f"Fetching data for {symbol} from {start_date} to {end_date}")
         
         # Try with .NS suffix first
@@ -250,6 +257,14 @@ def fetch_stock_data(symbol, start_date=None, end_date=None):
         print(data.tail())
         print("Data info:")
         print(data.info())
+        
+        # Check if we have data up to the requested end date
+        if not data.empty:
+            last_date = pd.Timestamp(data.index[-1]).date()
+            if last_date < end_date:
+                print(f"Warning: Data only available up to {last_date}, not {end_date}")
+                # Update end_date to the last available date
+                end_date = last_date
         
         return True, f"Successfully fetched data for {symbol}", data
         
@@ -463,6 +478,100 @@ def watchlist_detail_content(request):
     
     return render(request, 'dataupdate/watchlist_detail_content.html', context)
 
+@background(schedule=0)  # Run immediately
+def update_stock_data_background(symbol, start_date_str=None, end_date_str=None):
+    """
+    Background task to update stock data with throttling
+    """
+    try:
+        # Convert string dates back to date objects
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date() if start_date_str else None
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date() if end_date_str else None
+        
+        # Use the fetch_stock_data function
+        success, message, data = fetch_stock_data(symbol, start_date, end_date)
+        
+        if not success:
+            logger.error(f"Failed to fetch data for {symbol}: {message}")
+            # If the stock is delisted, we should mark it in some way
+            # For now, just log it
+            if "may be delisted" in message:
+                logger.warning(f"Stock {symbol} appears to be delisted. Consider removing from database.")
+            return
+            
+        if data.empty:
+            logger.warning(f"No data returned for {symbol} in the specified date range")
+            return
+            
+        # Prepare bulk data for insertion
+        bulk_data = []
+        existing_dates = set()
+        
+        # Get existing dates for this stock to avoid duplicates
+        with transaction.atomic():
+            stock = Stock.objects.get(symbol=symbol)
+            existing_prices = StockPrice.objects.filter(stock=stock).values_list('date', flat=True)
+            existing_dates = set(existing_prices)
+        
+        for index, row in data.iterrows():
+            try:
+                date = pd.Timestamp(index).date()
+                
+                # Skip if we already have data for this date
+                if date in existing_dates:
+                    continue
+                
+                # Get values using iloc to avoid deprecation warnings
+                open_price = round(float(row.iloc[data.columns.get_loc('Open')].iloc[0]), 2)
+                high_price = round(float(row.iloc[data.columns.get_loc('High')].iloc[0]), 2)
+                low_price = round(float(row.iloc[data.columns.get_loc('Low')].iloc[0]), 2)
+                close_price = round(float(row.iloc[data.columns.get_loc('Close')].iloc[0]), 2)
+                volume = round(float(row.iloc[data.columns.get_loc('Volume')].iloc[0]), 0)
+                
+                # Calculate adjusted close if not available
+                adjusted_close = close_price
+                if 'Adj Close' in data.columns:
+                    adjusted_close = round(float(row.iloc[data.columns.get_loc('Adj Close')].iloc[0]), 2)
+                
+                # Add to bulk data
+                bulk_data.append(StockPrice(
+                    stock=stock,
+                    date=date,
+                    open_price=open_price,
+                    high_price=high_price,
+                    low_price=low_price,
+                    close_price=close_price,
+                    adjusted_close=adjusted_close,
+                    volume=volume
+                ))
+                
+            except Exception as e:
+                logger.error(f"Error processing row for {symbol} on {date}: {e}")
+                continue
+        
+        # Add a 1-second sleep before database operations to reduce lock contention
+        time.sleep(1)
+        
+        # Bulk insert all data at once in a single transaction
+        if bulk_data:
+            try:
+                with transaction.atomic():
+                    # Use bulk_create with ignore_conflicts to handle duplicates
+                    StockPrice.objects.bulk_create(bulk_data, ignore_conflicts=True)
+                    logger.info(f"Successfully bulk inserted {len(bulk_data)} days of data for {symbol}")
+                    
+                    # Update stock's last_updated timestamp in the same transaction
+                    stock.last_updated = datetime.now()
+                    stock.save()
+                    
+            except Exception as e:
+                logger.error(f"Error bulk inserting data for {symbol}: {e}")
+                raise  # Re-raise the exception to trigger the background task retry
+        
+    except Exception as e:
+        logger.error(f"Error in update_stock_data_background for {symbol}: {str(e)}")
+        raise  # Re-raise the exception to trigger the background task retry
+
 @login_required
 def all_stocks(request):
     """Serve the all stocks content without the watchlist group structure"""
@@ -497,6 +606,22 @@ def all_stocks(request):
             
             # Format the date
             date_str = latest_price.date.strftime("%Y-%m-%d")
+            
+            # Check if data needs updating (older than yesterday)
+            today = datetime.now().date()
+            yesterday = today - timedelta(days=1)
+            
+            if latest_price.date < yesterday:
+                # Schedule background task to update this stock's data
+                # Convert dates to strings for JSON serialization
+                start_date_str = (latest_price.date + timedelta(days=1)).strftime("%Y-%m-%d")
+                end_date_str = today.strftime("%Y-%m-%d")
+                
+                update_stock_data_background(
+                    stock.symbol,
+                    start_date_str=start_date_str,
+                    end_date_str=end_date_str
+                )
         
         stock_data = {
             'stock': stock,
