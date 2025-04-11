@@ -1,0 +1,61 @@
+{% csrf_token %}
+<div class="card-header d-flex justify-content-between align-items-center bg-dark border-bottom border-secondary">
+    <div>
+        <h5 class="card-title mb-0">
+            <i class="fas fa-chart-line text-primary me-2"></i>All Stocks
+        </h5>
+    </div>
+    <div>
+        <button class="btn btn-sm btn-outline-primary me-2" onclick="window.dataUpdateManager.loadStocks()">
+            <i class="fas fa-sync-alt me-1"></i> Refresh
+        </button>
+        <button class="btn btn-primary btn-update-all-stocks" onclick="window.dataUpdateManager.updateAllStocksWithThrottling()">
+            <i class="fas fa-sync"></i> Update All
+        </button>
+    </div>
+</div>
+
+{% if stocks_with_prices %}
+<div class="table-responsive">
+    <table class="table table-dark table-hover">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th class="text-end">Price</th>
+                <th class="text-end">Change</th>
+                <th class="text-center">Date</th>
+                <th class="text-center">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stock_data in stocks_with_prices %}
+            <tr>
+                <td><strong>{{ stock_data.stock.symbol }}</strong></td>
+                <td>{{ stock_data.stock.name }}</td>
+                <td class="text-end">{{ stock_data.latest_price.price|floatformat:2 }}</td>
+                <td class="text-end {% if stock_data.latest_price.change > 0 %}text-success{% elif stock_data.latest_price.change < 0 %}text-danger{% endif %}">
+                    {{ stock_data.latest_price.change|floatformat:2 }} ({{ stock_data.latest_price.change_percentage|floatformat:2 }}%)
+                </td>
+                <td class="text-center">{{ stock_data.latest_price.date }}</td>
+                <td class="text-center">
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-info" onclick="window.dataUpdateManager.viewStockDetails('{{ stock_data.stock.symbol }}')" title="View Details">
+                            <i class="fas fa-chart-line"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.dataUpdateManager.updateStockData('{{ stock_data.stock.symbol }}')" title="Update Data">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center text-muted p-4">
+    <i class="fas fa-inbox fa-2x mb-3"></i>
+    <p>No stocks found.</p>
+</div>
+{% endif %} 

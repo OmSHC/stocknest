@@ -11,25 +11,11 @@ import json
 logger = logging.getLogger(__name__)
 
 @login_required
-def watchlist(request):
-    # Get user's personal watchlists
-    personal_watchlists = Watchlist.objects.filter(
-        created_by=request.user,
-        is_global=False
-    ).prefetch_related('stocks')
-    
-    # Get all stocks for the create watchlist modal
-    stocks = Stock.objects.all().order_by('symbol')
-    
-    context = {
-        'personal_watchlists': personal_watchlists,
-        'stocks': stocks,
-    }
-    
-    return render(request, 'watchlist/watchlist.html', context)
-
-@login_required
 def watchlist_detail(request, watchlist_id):
+    print("\n=== DEBUG: watchlist_detail view in watchlist/views.py is being called ===")
+    print("View: watchlist_detail")
+    print("Function: watchlist_detail")
+    print("Template: watchlist_detail.html")
     watchlist = get_object_or_404(Watchlist, id=watchlist_id, created_by=request.user)
     
     # Get all stocks with their latest prices
@@ -346,3 +332,25 @@ def edit_watchlist(request, watchlist_id):
                 'success': False,
                 'message': 'Failed to update watchlist'
             }, status=500)
+
+@login_required
+def watchlist(request):
+    print("\n=== DEBUG: watchlist view in watchlist/views.py is being called ===")
+    print("View: watchlist")
+    print("Function: watchlist")
+    print("Template: watchlist.html")
+    # Get user's personal watchlists
+    personal_watchlists = Watchlist.objects.filter(
+        created_by=request.user,
+        is_global=False
+    ).prefetch_related('stocks')
+    
+    # Get all stocks for the create watchlist modal
+    stocks = Stock.objects.all().order_by('symbol')
+    
+    context = {
+        'personal_watchlists': personal_watchlists,
+        'stocks': stocks,
+    }
+    
+    return render(request, 'watchlist/watchlist.html', context)

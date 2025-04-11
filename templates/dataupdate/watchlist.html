@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Watchlists{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Main Content Area -->
+            <div id="mainContent">
+                <!-- Create Watchlist Form -->
+                <div class="card bg-dark text-light mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h2 class="mb-0">Create New Watchlist</h2>
+                        <button type="button" class="btn btn-outline-secondary" onclick="window.watchlistManager.hideCreateWatchlistForm()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <form id="createWatchlistForm" action="{% url 'dashboard:watchlist:create' %}" method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Watchlist Name</label>
+                                <input type="text" class="form-control bg-dark text-light" id="name" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control bg-dark text-light" id="description" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Visibility</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="visibility" id="private" value="private" checked>
+                                    <label class="form-check-label" for="private">Private</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="visibility" id="public" value="public">
+                                    <label class="form-check-label" for="public">Public</label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="stockSearch" class="form-label">Add Stocks</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control bg-dark text-light" id="stockSearch" placeholder="Search stocks...">
+                                    <button type="button" class="btn btn-outline-primary" id="addStock">
+                                        <i class="fas fa-plus"></i> Add
+                                    </button>
+                                </div>
+                                <div class="selected-stocks mt-2" id="selectedStocksList"></div>
+                                <div class="stock-list-container mt-2" style="display: none;">
+                                    <div class="list-group">
+                                        {% for stock in available_stocks %}
+                                        <div class="stock-item list-group-item list-group-item-action bg-dark text-light">
+                                            <div class="form-check">
+                                                <input class="form-check-input stock-checkbox" type="checkbox" value="{{ stock.id }}" id="stock_{{ stock.id }}">
+                                                <label class="form-check-label" for="stock_{{ stock.id }}">
+                                                    <strong>{{ stock.symbol }}</strong>
+                                                    <small class="text-muted">{{ stock.name }}</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div id="noResults" class="text-muted mt-2" style="display: none;">No stocks found</div>
+                                <div id="searchLoading" class="text-center mt-2" style="display: none;">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Create Watchlist</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Watchlists List -->
+                <div id="watchlistsContainer">
+                    {% if personal_watchlists %}
+                        <div class="row">
+                            {% for watchlist in personal_watchlists %}
+                                <div class="col-md-6 col-lg-4 mb-4">
+                                    <div class="card bg-dark text-light h-100">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0">
+                                                <a href="#" class="text-light text-decoration-none watchlist-name" data-watchlist-id="{{ watchlist.id }}">
+                                                    {{ watchlist.name }}
+                                                </a>
+                                            </h5>
+                                            <div class="badge bg-{% if watchlist.is_global %}success{% else %}primary{% endif %}">
+                                                {{ watchlist.is_global|yesno:"Public,Private" }}
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            {% if watchlist.description %}
+                                                <p class="text-muted mb-3">{{ watchlist.description }}</p>
+                                            {% endif %}
+                                            <div class="d-flex flex-wrap gap-2">
+                                                {% for stock in watchlist.stocks.all|slice:":5" %}
+                                                    <span class="badge bg-secondary">{{ stock.symbol }}</span>
+                                                {% endfor %}
+                                                {% if watchlist.stocks.count > 5 %}
+                                                    <span class="badge bg-info">+{{ watchlist.stocks.count|add:"-5" }} more</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="card-footer text-muted">
+                                            <small>Created {{ watchlist.created_at|date:"M d, Y" }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-list text-muted mb-3" style="font-size: 3rem;"></i>
+                            <h5 class="text-muted">No watchlists yet</h5>
+                            <p class="text-muted">Create your first watchlist to start tracking stocks</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/watchlist.js' %}"></script>
+{% endblock %} 

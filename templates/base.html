@@ -230,6 +230,10 @@
             color: rgba(241, 196, 15, 0.4); /* Lighter yellow for watchlist */
         }
 
+        .sidebar .nav-link[data-panel="dataupdate"]:hover i {
+            color: rgba(155, 89, 182, 0.4); /* Lighter purple for data update */
+        }
+
         .sidebar .nav-link[data-panel="portfolio"]:hover i {
             color: rgba(46, 204, 113, 0.4); /* Lighter green for portfolio */
         }
@@ -253,6 +257,10 @@
 
         .sidebar .nav-link[data-panel="watchlist"].active i {
             color: #f1c40f; /* Yellow for watchlist */
+        }
+
+        .sidebar .nav-link[data-panel="dataupdate"].active i {
+            color: #9b59b6; /* Purple for data update */
         }
 
         .sidebar .nav-link[data-panel="portfolio"].active i {
@@ -367,6 +375,13 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+        }
+
+        .middle-sidebar-header {
+            padding: 10px 15px;
+            background-color: #34495e;
+            color: #ecf0f1;
+            border-bottom: 1px solid #4a617a;
         }
 
         .middle-sidebar-content {
@@ -946,6 +961,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="/dataupdate/">
+                        <i class="fas fa-database" aria-hidden="true"></i>
+                        <span>Data Update</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="#" data-panel="portfolio">
                         <i class="fas fa-briefcase" aria-hidden="true"></i>
                         <span>Portfolio</span>
@@ -994,6 +1015,9 @@
 
     <!-- Middle Sidebar -->
     <div id="middleSidebar" class="middle-sidebar">
+        <div class="middle-sidebar-header">
+            <h4 id="middleSidebarTitle">Quick Stats</h4>
+        </div>
         <div class="middle-sidebar-content">
             <!-- User Profile Panel -->
             <div id="userProfilePanel" class="middle-sidebar-panel" style="display: none;">
@@ -1169,6 +1193,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Data Update Section -->
+            {% include 'dataupdate/middle_sidebar.html' %}
 
             <!-- Portfolio Section -->
             <div class="portfolio-section" style="display: none;">
@@ -2246,7 +2273,7 @@
                 // Apply the change immediately if possible
                 const watchlistSection = document.querySelector('.watchlist-section');
                 if (watchlistSection) {
-                    const panels = document.querySelectorAll('.middle-sidebar-panel, .watchlist-section, .portfolio-section, .market-section, .risk-section, .reports-section');
+                    const panels = document.querySelectorAll('.middle-sidebar-panel, .watchlist-section, .portfolio-section, .market-section, .risk-section, .reports-section, .dataupdate-section');
                     panels.forEach(panel => panel.style.display = 'none');
                     watchlistSection.style.display = 'block';
                     
@@ -2272,7 +2299,7 @@
             // Initialize middle sidebar panels
             const initMiddleSidebar = function() {
                 // Get all middle sidebar panels
-                const panels = document.querySelectorAll('.middle-sidebar-panel, .watchlist-section, .portfolio-section, .market-section, .risk-section, .reports-section');
+                const panels = document.querySelectorAll('.middle-sidebar-panel, .watchlist-section, .portfolio-section, .market-section, .risk-section, .reports-section, .dataupdate-section');
                 
                 if (panels.length === 0) return; // No panels found
                 
@@ -2301,6 +2328,7 @@
                             'marketPanel': '.market-section',
                             'riskPanel': '.risk-section',
                             'reportsPanel': '.reports-section',
+                            'dataupdatePanel': '.dataupdate-section',
                             'userProfilePanel': '#userProfilePanel'
                         };
                         
@@ -2331,7 +2359,8 @@
                     'portfolioPanel': 'My Holdings',
                     'marketPanel': 'Market Overview',
                     'riskPanel': 'Risk Analysis',
-                    'reportsPanel': 'Reports'
+                    'reportsPanel': 'Reports',
+                    'dataupdatePanel': 'Data Update'
                 };
                 
                 headerTitle.textContent = titleMap[panelId] || 'Dashboard';
@@ -2347,7 +2376,7 @@
                     // Save the current active panel before navigating
                     const middleSidebar = document.querySelector('.middle-sidebar');
                     if (middleSidebar) {
-                        const activePanel = middleSidebar.querySelector('.middle-sidebar-panel[style*="display: block"], .watchlist-section[style*="display: block"], .portfolio-section[style*="display: block"], .market-section[style*="display: block"], .risk-section[style*="display: block"], .reports-section[style*="display: block"]');
+                        const activePanel = middleSidebar.querySelector('.middle-sidebar-panel[style*="display: block"], .watchlist-section[style*="display: block"], .portfolio-section[style*="display: block"], .market-section[style*="display: block"], .risk-section[style*="display: block"], .reports-section[style*="display: block"], .dataupdate-section[style*="display: block"]');
                         if (activePanel) {
                             if (activePanel.id) {
                                 localStorage.setItem('activePanelId', activePanel.id);
@@ -2358,7 +2387,8 @@
                                     'portfolio-section': 'portfolioPanel',
                                     'market-section': 'marketPanel',
                                     'risk-section': 'riskPanel',
-                                    'reports-section': 'reportsPanel'
+                                    'reports-section': 'reportsPanel',
+                                    'dataupdate-section': 'dataupdatePanel'
                                 };
                                 
                                 // Find which class this panel has

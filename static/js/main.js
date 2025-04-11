@@ -10,7 +10,8 @@ const AppManager = {
     initializeEventListeners() {
         // Handle sidebar navigation
         document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-            if (!link.classList.contains('user-toggle')) {
+            // Skip user-toggle and dataupdate links
+            if (!link.classList.contains('user-toggle') && !link.getAttribute('href').includes('dataupdate')) {
                 link.addEventListener('click', (e) => this.handleSidebarNavigation(e));
             }
         });
@@ -29,8 +30,13 @@ const AppManager = {
 
     // Handle sidebar navigation
     handleSidebarNavigation(e) {
-        e.preventDefault();
         const panel = e.currentTarget.getAttribute('data-panel');
+        if (!panel) {
+            // If no data-panel attribute, let the browser handle the navigation
+            return;
+        }
+        
+        e.preventDefault();
         switch(panel) {
             case 'watchlist':
                 this.showWatchlist();

@@ -22,7 +22,6 @@ if (typeof DataUpdateManager === 'undefined') {
                 
                 // Initialize Data Update specific elements
                 this.updateStockQuotesBtn = document.querySelector('.dataupdate-section button[onclick*="updateStockQuotes"]');
-                this.updateHistoricalDataBtn = document.querySelector('.dataupdate-section a[onclick*="updateHistoricalData"]');
                 this.updateStockInfoBtn = document.querySelector('.dataupdate-section a[onclick*="updateStockInfo"]');
                 this.stockList = document.getElementById('stockList');
                 this.lastHistoricalUpdate = document.getElementById('lastHistoricalUpdate');
@@ -38,7 +37,6 @@ if (typeof DataUpdateManager === 'undefined') {
                     createWatchlistForm: !!this.createWatchlistForm,
                     watchlistsContainer: !!this.watchlistsContainer,
                     updateStockQuotesBtn: !!this.updateStockQuotesBtn,
-                    updateHistoricalDataBtn: !!this.updateHistoricalDataBtn,
                     updateStockInfoBtn: !!this.updateStockInfoBtn,
                     stockList: !!this.stockList,
                     lastHistoricalUpdate: !!this.lastHistoricalUpdate,
@@ -117,6 +115,9 @@ if (typeof DataUpdateManager === 'undefined') {
             // Check if we're on the dataupdate page and show the section
             if (window.location.pathname.includes('/dataupdate/')) {
                 console.log('On dataupdate page, showing dataupdate section');
+                // Set the active panel ID in localStorage
+                localStorage.setItem('activePanelId', 'dataupdatePanel');
+                
                 const dataupdateSection = document.querySelector('.dataupdate-section');
                 if (dataupdateSection) {
                     dataupdateSection.style.display = 'block';
@@ -129,7 +130,6 @@ if (typeof DataUpdateManager === 'undefined') {
             // Log DOM elements we need
             console.log('Checking required DOM elements:', {
                 updateStockQuotes: !!this.updateStockQuotesBtn,
-                updateHistoricalData: !!this.updateHistoricalDataBtn,
                 updateStockInfo: !!this.updateStockInfoBtn,
                 stockList: !!this.stockList,
                 notification: !!this.notification,
@@ -151,16 +151,6 @@ if (typeof DataUpdateManager === 'undefined') {
                 });
             } else {
                 console.error('updateStockQuotes button not found in DOM');
-            }
-
-            if (this.updateHistoricalDataBtn) {
-                console.log('Binding click event to updateHistoricalData button');
-                this.updateHistoricalDataBtn.addEventListener('click', () => {
-                    console.log('updateHistoricalData button clicked');
-                    this.updateHistoricalData();
-                });
-            } else {
-                console.error('updateHistoricalData button not found in DOM');
             }
 
             if (this.updateStockInfoBtn) {
@@ -486,6 +476,22 @@ if (typeof DataUpdateManager === 'undefined') {
                 const watchlistId = match[1];
                 console.log('Direct URL access detected for watchlist:', watchlistId);
                 this.loadWatchlistDetails(watchlistId);
+            }
+            
+            // Check if we're on the dataupdate page
+            if (path.includes('/dataupdate/')) {
+                console.log('Direct URL access detected for dataupdate page');
+                // Set the active panel ID in localStorage
+                localStorage.setItem('activePanelId', 'dataupdatePanel');
+                
+                // Show the dataupdate section
+                const dataupdateSection = document.querySelector('.dataupdate-section');
+                if (dataupdateSection) {
+                    dataupdateSection.style.display = 'block';
+                    console.log('Data update section is now visible');
+                } else {
+                    console.error('dataupdate section not found in DOM');
+                }
             }
         }
 
@@ -1136,8 +1142,15 @@ if (typeof DataUpdateManager === 'undefined') {
         loadStocks() {
             console.log('Loading all stocks');
             
-            // Show loading indicator
-            this.stockList.innerHTML = `
+            // Get the main content area
+            const mainContent = document.getElementById('mainContent');
+            if (!mainContent) {
+                console.error('Main content area not found');
+                return;
+            }
+            
+            // Show loading indicator in the main content area
+            mainContent.innerHTML = `
                 <div class="text-center text-muted p-4">
                     <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
                     <p>Loading stocks...</p>
@@ -1151,8 +1164,8 @@ if (typeof DataUpdateManager === 'undefined') {
                 statusBadge.className = 'badge bg-info rounded-pill';
             }
             
-            // Fetch the watchlist_detail_content.html template
-            fetch('/dataupdate/watchlist_detail_content.html', {
+            // Fetch the watchlist detail content from the correct URL
+            fetch('/dataupdate/allstocks/', {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -1179,14 +1192,14 @@ if (typeof DataUpdateManager === 'undefined') {
                     statusBadge.className = 'badge bg-success rounded-pill';
                 }
                 
-                // Update the stock list with the template content
-                this.stockList.innerHTML = html;
+                // Update the main content area with the template content
+                mainContent.innerHTML = html;
             })
             .catch(error => {
                 console.error('Error loading watchlist detail content:', error);
                 
-                // Show error message
-                this.stockList.innerHTML = `
+                // Show error message in the main content area
+                mainContent.innerHTML = `
                     <div class="alert alert-danger m-3" role="alert">
                         <i class="fas fa-exclamation-circle me-2"></i>Error loading stocks: ${error.message}
                     </div>
@@ -1269,66 +1282,189 @@ if (typeof DataUpdateManager === 'undefined') {
             this.showNotification('info', `Viewing details for ${symbol}`);
         }
         
-        updateStockData(symbol) {
-            console.log('Updating data for stock:', symbol);
-            // Implement stock data update logic here
-            this.showNotification('info', `Updating data for ${symbol}`);
-        }
-
-        updateStockQuotes() {
-            this.showNotification('Updating stock quotes...', 'info');
-            fetch('/dashboard/dataupdate/api/update-stock-quotes/', { 
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        this.showNotification(data.message, 'success');
-                        this.loadStocks();
-                    } else {
-                        this.showNotification(data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating stock quotes:', error);
-                    this.showNotification('Error updating stock quotes', 'error');
-                });
-        }
-
-        updateHistoricalData() {
-            this.showNotification('Updating historical data...', 'info');
-            this.historicalUpdateStatus.textContent = 'Updating...';
-            this.historicalUpdateStatus.className = 'badge bg-warning rounded-pill';
+        async updateStockData(symbol) {
+            console.log('Updating stock data for:', symbol);
             
-            fetch('/dashboard/dataupdate/api/update-historical-data/', { 
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        this.showNotification(data.message, 'success');
-                        this.historicalUpdateStatus.textContent = 'Updated';
-                        this.historicalUpdateStatus.className = 'badge bg-success rounded-pill';
-                        this.lastHistoricalUpdate.textContent = this.formatDate(new Date());
-                        this.loadStocks();
-                    } else {
-                        this.showNotification(data.message, 'error');
-                        this.historicalUpdateStatus.textContent = 'Failed';
-                        this.historicalUpdateStatus.className = 'badge bg-danger rounded-pill';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating historical data:', error);
-                    this.showNotification('Error updating historical data', 'error');
-                    this.historicalUpdateStatus.textContent = 'Failed';
-                    this.historicalUpdateStatus.className = 'badge bg-danger rounded-pill';
+            // Show loading state
+            const button = document.querySelector(`button[onclick="window.dataUpdateManager.updateStockData('${symbol}')"]`);
+            const originalState = button ? button.innerHTML : null;
+            
+            if (button) {
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                button.disabled = true;
+            }
+            
+            try {
+                // Get CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                const response = await fetch('/dashboard/dataupdate/refresh-stock-data/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ symbol })
                 });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Show success message
+                    this.showMessage('success', data.message);
+                    
+                    // Refresh the stock list
+                    await this.refreshStockList();
+                } else {
+                    this.showMessage('error', data.message || 'Failed to update stock data');
+                }
+            } catch (error) {
+                console.error('Error updating stock data:', error);
+                this.showMessage('error', 'An error occurred while updating stock data');
+            } finally {
+                // Restore button state
+                if (button && originalState) {
+                    button.innerHTML = originalState;
+                    button.disabled = false;
+                }
+            }
+        }
+
+        async updateAllStocksWithThrottling() {
+            console.log('Starting throttled update of all stocks');
+            
+            // Show loading state
+            const button = document.querySelector('.btn-update-all-stocks');
+            if (button) {
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                button.disabled = true;
+            }
+            
+            // Show notification
+            this.showMessage('info', 'Starting update of all stocks...');
+            
+            // Get all stocks from the table
+            const stockRows = document.querySelectorAll('#stockList tr');
+            const stocks = Array.from(stockRows).map(row => {
+                const symbolCell = row.querySelector('td:first-child strong');
+                return symbolCell ? symbolCell.textContent.trim() : null;
+            }).filter(symbol => symbol);
+            
+            console.log(`Found ${stocks.length} stocks to update`);
+            
+            if (stocks.length === 0) {
+                this.showMessage('warning', 'No stocks found to update');
+                if (button) {
+                    button.innerHTML = '<i class="fas fa-sync"></i> Update All';
+                    button.disabled = false;
+                }
+                return;
+            }
+            
+            // Process stocks with throttling
+            let processed = 0;
+            let success = 0;
+            let failed = 0;
+            let skipped = 0;
+            
+            // Function to process a single stock
+            const processStock = async (index) => {
+                if (index >= stocks.length) {
+                    // All stocks processed
+                    this.showMessage('success', `Completed updating ${success} out of ${stocks.length} stocks (${skipped} skipped, ${failed} failed)`);
+                    if (button) {
+                        button.innerHTML = '<i class="fas fa-sync"></i> Update All';
+                        button.disabled = false;
+                    }
+                    await this.refreshStockList();
+                    return;
+                }
+                
+                const symbol = stocks[index];
+                console.log(`Processing stock ${index + 1}/${stocks.length}: ${symbol}`);
+                
+                // Update progress notification
+                this.showMessage('info', `Updating ${symbol} (${index + 1}/${stocks.length})...`);
+                
+                try {
+                    // Get CSRF token
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    
+                    const response = await fetch('/dashboard/dataupdate/refresh-stock-data/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ symbol })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    processed++;
+                    if (data.success) {
+                        // Check if the stock was skipped because it's already up to date
+                        if (data.message && data.message.includes('already up to date')) {
+                            skipped++;
+                            console.log(`Skipped ${symbol} (already up to date)`);
+                        } else {
+                            success++;
+                            console.log(`Successfully updated ${symbol}`);
+                        }
+                    } else {
+                        failed++;
+                        console.error(`Failed to update ${symbol}: ${data.message}`);
+                    }
+                } catch (error) {
+                    processed++;
+                    failed++;
+                    console.error(`Error updating ${symbol}:`, error);
+                }
+                
+                // Schedule next stock update with a delay
+                setTimeout(() => {
+                    processStock(index + 1);
+                }, 2000); // 2 second delay between requests
+            };
+            
+            // Start processing the first stock
+            processStock(0);
+        }
+
+        showMessage(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            // Find the container for alerts
+            const container = document.querySelector('.container');
+            if (container) {
+                container.insertBefore(alertDiv, container.firstChild);
+                
+                // Auto-dismiss after 5 seconds
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
+            }
+        }
+
+        async refreshStockList() {
+            try {
+                const response = await fetch('/dataupdate/allstocks/');
+                const html = await response.text();
+                
+                // Update the stock list content
+                const stockListContainer = document.querySelector('#stock-list-container');
+                if (stockListContainer) {
+                    stockListContainer.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('Error refreshing stock list:', error);
+            }
         }
 
         updateStockInfo() {

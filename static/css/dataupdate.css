@@ -1,0 +1,216 @@
+.data-update-header {
+    padding: 20px;
+    background: linear-gradient(145deg, rgba(155, 89, 182, 0.1), rgba(155, 89, 182, 0.05));
+    border-radius: 12px;
+    border: 1px solid rgba(155, 89, 182, 0.2);
+    margin-bottom: 20px;
+}
+
+.data-update-header h4 {
+    color: #ecf0f1;
+    margin: 0;
+}
+
+.data-update-card {
+    background: rgba(44, 62, 80, 0.5);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.data-update-card h5 {
+    color: #ecf0f1;
+    margin-bottom: 15px;
+}
+
+.data-update-card p {
+    color: #bdc3c7;
+    margin-bottom: 20px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.action-button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-button i {
+    font-size: 1.1rem;
+}
+
+.action-button.primary {
+    background: linear-gradient(145deg, #9b59b6, #8e44ad);
+    color: #fff;
+}
+
+.action-button.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+}
+
+.action-button.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ecf0f1;
+}
+
+.action-button.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.stock-list {
+    margin-top: 20px;
+}
+
+.stock-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background-color 0.2s ease;
+}
+
+.stock-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.stock-info {
+    flex: 1;
+}
+
+.stock-symbol {
+    font-weight: 600;
+    color: #fff;
+}
+
+.stock-name {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.stock-meta {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-right: 15px;
+}
+
+.stock-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.stock-action {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.stock-action:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.stock-action.view:hover {
+    color: #3498db;
+}
+
+.stock-action.delete:hover {
+    color: #e74c3c;
+}
+
+.data-card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+    padding: 15px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.data-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 5px;
+}
+
+.data-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.watchlist-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+}
+
+.section-header {
+    margin-bottom: 15px;
+}
+
+.section-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: rgba(155, 89, 182, 0.1);
+    color: #9b59b6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+}
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.3s ease;
+    max-width: 350px;
+}
+
+.notification.info {
+    background-color: #3498db;
+}
+
+.notification.success {
+    background-color: #2ecc71;
+}
+
+.notification.error {
+    background-color: #e74c3c;
+}
+
+.notification.warning {
+    background-color: #f39c12;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+} 
