@@ -463,10 +463,15 @@ if (typeof WatchlistManager === 'undefined') {
                                 <thead>
                                     <tr>
                                         <th>Symbol <i class="fas fa-tag ms-1"></i></th>
-                                        <th>Price <i class="fas fa-dollar-sign ms-1"></i></th>
-                                        <th>Change <i class="fas fa-chart-line ms-1"></i></th>
-                                        <th>Volume <i class="fas fa-chart-bar ms-1"></i></th>
-                                        <th>Actions <i class="fas fa-cog ms-1"></i></th>
+                                        <th>Name <i class="fas fa-building ms-1"></i></th>
+                                        <th class="text-end">Price <i class="fas fa-dollar-sign ms-1"></i></th>
+                                        <th class="text-end">Open <i class="fas fa-arrow-up ms-1"></i></th>
+                                        <th class="text-end">High <i class="fas fa-arrow-up ms-1"></i></th>
+                                        <th class="text-end">Low <i class="fas fa-arrow-down ms-1"></i></th>
+                                        <th class="text-end">Change <i class="fas fa-chart-line ms-1"></i></th>
+                                        <th class="text-end">Volume <i class="fas fa-chart-bar ms-1"></i></th>
+                                        <th class="text-center">Date <i class="fas fa-calendar ms-1"></i></th>
+                                        <th class="text-center">Actions <i class="fas fa-cog ms-1"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -476,19 +481,22 @@ if (typeof WatchlistManager === 'undefined') {
                 data.stocks.forEach(stock => {
                     content += `
                         <tr>
-                            <td>${stock.symbol}</td>
-                            <td>$${stock.current_price || '0.00'}</td>
-                            <td>
-                                <span class="${stock.change >= 0 ? 'text-success' : 'text-danger'}">
-                                    ${stock.change_percentage ? stock.change_percentage.toFixed(2) + '%' : '0.00%'}
-                                </span>
+                            <td><strong>${stock.symbol}</strong></td>
+                            <td>${stock.name || ''}</td>
+                            <td class="text-end">$${stock.current_price || '0.00'}</td>
+                            <td class="text-end text-muted">$${stock.open_price || '0.00'}</td>
+                            <td class="text-end text-success">$${stock.high_price || '0.00'}</td>
+                            <td class="text-end text-danger">$${stock.low_price || '0.00'}</td>
+                            <td class="text-end ${stock.change >= 0 ? 'text-success' : 'text-danger'}">
+                                ${stock.change ? stock.change.toFixed(2) : '0.00'} (${stock.change_percentage ? stock.change_percentage.toFixed(2) : '0.00'}%)
                             </td>
-                            <td>${stock.volume || '0'}</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-light me-2" onclick="watchlistManager.viewStockDetails('${stock.symbol}')">
+                            <td class="text-end">${stock.volume ? stock.volume.toLocaleString() : '0'}</td>
+                            <td class="text-center">${stock.date || 'N/A'}</td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-info me-2" onclick="watchlistManager.viewStockDetails('${stock.symbol}')" title="View Details">
                                     <i class="fas fa-chart-line"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="watchlistManager.removeStockFromWatchlist(${this.currentWatchlistId}, '${stock.symbol}')">
+                                <button class="btn btn-sm btn-outline-danger" onclick="watchlistManager.removeStockFromWatchlist(${this.currentWatchlistId}, '${stock.symbol}')" title="Remove Stock">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </td>
@@ -498,7 +506,7 @@ if (typeof WatchlistManager === 'undefined') {
             } else {
                 content += `
                     <tr>
-                        <td colspan="5" class="text-center">No stocks in this watchlist yet.</td>
+                        <td colspan="10" class="text-center">No stocks in this watchlist yet.</td>
                     </tr>
                 `;
             }

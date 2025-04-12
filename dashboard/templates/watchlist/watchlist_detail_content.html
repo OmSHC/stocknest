@@ -39,10 +39,34 @@
                                             <span>Symbol</span>
                                         </div>
                                     </th>
+                                    <th class="text-start py-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-building me-2 text-info"></i>
+                                            <span>Name</span>
+                                        </div>
+                                    </th>
                                     <th class="text-end py-3">
                                         <div class="d-flex align-items-center justify-content-end">
                                             <span>Price</span>
                                             <i class="fas fa-dollar-sign ms-2 text-success"></i>
+                                        </div>
+                                    </th>
+                                    <th class="text-end py-3">
+                                        <div class="d-flex align-items-center justify-content-end">
+                                            <span>Open</span>
+                                            <i class="fas fa-arrow-up ms-2 text-info"></i>
+                                        </div>
+                                    </th>
+                                    <th class="text-end py-3">
+                                        <div class="d-flex align-items-center justify-content-end">
+                                            <span>High</span>
+                                            <i class="fas fa-arrow-up ms-2 text-success"></i>
+                                        </div>
+                                    </th>
+                                    <th class="text-end py-3">
+                                        <div class="d-flex align-items-center justify-content-end">
+                                            <span>Low</span>
+                                            <i class="fas fa-arrow-down ms-2 text-danger"></i>
                                         </div>
                                     </th>
                                     <th class="text-end py-3">
@@ -59,6 +83,12 @@
                                     </th>
                                     <th class="text-center py-3">
                                         <div class="d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-calendar me-2 text-light"></i>
+                                            <span>Date</span>
+                                        </div>
+                                    </th>
+                                    <th class="text-center py-3">
+                                        <div class="d-flex align-items-center justify-content-center">
                                             <i class="fas fa-cog me-2 text-light"></i>
                                             <span>Actions</span>
                                         </div>
@@ -69,18 +99,35 @@
                                 {% for stock_data in stocks_with_prices %}
                                 <tr data-stock-symbol="{{ stock_data.stock.symbol }}">
                                     <td class="text-start">
-                                        <span class="fw-bold">{{ stock_data.stock.symbol }}</span>
+                                        <strong>{{ stock_data.stock.symbol }}</strong>
                                     </td>
+                                    <td class="text-start">{{ stock_data.stock.name }}</td>
                                     <td class="text-end">
                                         <span class="fw-bold">${{ stock_data.latest_price.price|floatformat:2 }}</span>
                                     </td>
                                     <td class="text-end">
-                                        <span class="badge {% if stock_data.latest_price.change >= 0 %}bg-success{% else %}bg-danger{% endif %}">
-                                            {{ stock_data.latest_price.change_percentage|floatformat:2 }}%
+                                        <span class="text-muted">${{ stock_data.latest_price.open_price|floatformat:2 }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="text-success">${{ stock_data.latest_price.high_price|floatformat:2 }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="text-danger">${{ stock_data.latest_price.low_price|floatformat:2 }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="text-{% if stock_data.latest_price.change >= 0 %}success{% else %}danger{% endif %}">
+                                            {{ stock_data.latest_price.change|floatformat:2 }} ({{ stock_data.latest_price.change_percentage|floatformat:2 }}%)
                                         </span>
                                     </td>
                                     <td class="text-end">
                                         <span class="text-muted">{{ stock_data.latest_price.volume|intcomma }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if stock_data.latest_price.date != "N/A" %}
+                                            <span class="text-muted">{{ stock_data.latest_price.date }}</span>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group">
@@ -97,7 +144,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="5" class="text-center py-4">
+                                    <td colspan="10" class="text-center py-4">
                                         <div class="text-muted">
                                             <i class="fas fa-inbox fa-2x mb-2"></i>
                                             <p class="mb-0">No stocks in this watchlist yet.</p>

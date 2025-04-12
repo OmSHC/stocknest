@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.urls import reverse
-from ..models import Watchlist, Stock
+from ..models import Watchlist, Stock, StockPrice
 from django.template.loader import render_to_string
 import logging
 import json
@@ -23,13 +23,49 @@ def watchlist_detail(request, watchlist_id):
     stocks_with_prices = []
     
     for stock in stocks:
+        # Get the latest price data for this stock
+        latest_price = StockPrice.objects.filter(stock=stock).order_by('-date').first()
+        
+        # Calculate price change and percentage if we have data
+        price = 0
+        open_price = 0
+        high_price = 0
+        low_price = 0
+        change = 0
+        change_percentage = 0
+        volume = 0
+        date_str = "N/A"
+        
+        if latest_price:
+            price = latest_price.close_price
+            open_price = latest_price.open_price
+            high_price = latest_price.high_price
+            low_price = latest_price.low_price
+            
+            # Get the previous day's price to calculate change
+            previous_price = StockPrice.objects.filter(
+                stock=stock, 
+                date__lt=latest_price.date
+            ).order_by('-date').first()
+            
+            if previous_price:
+                change = price - previous_price.close_price
+                change_percentage = (change / previous_price.close_price) * 100 if previous_price.close_price > 0 else 0
+            
+            volume = latest_price.volume
+            date_str = latest_price.date.strftime("%Y-%m-%d")
+        
         stock_data = {
             'stock': stock,
             'latest_price': {
-                'price': 0,
-                'change': 0,
-                'change_percentage': 0,
-                'volume': 0
+                'price': price,
+                'open_price': open_price,
+                'high_price': high_price,
+                'low_price': low_price,
+                'change': change,
+                'change_percentage': change_percentage,
+                'volume': volume,
+                'date': date_str
             }
         }
         stocks_with_prices.append(stock_data)
