@@ -60,4 +60,196 @@
             {% endfor %}
         </div>
     </div>
-</form> 
+
+    <!-- Column Selection Section -->
+  
+</form>
+
+<style>
+/* Column Selection Styles */
+.column-list-container {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.column-item {
+    transition: background-color 0.2s ease;
+}
+
+.column-item:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.column-item .form-check-label {
+    width: 100%;
+    cursor: pointer;
+}
+
+.column-item .badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+.selected-column-tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    margin: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.btn-remove-column {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 0;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.btn-remove-column:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Ensure consistent styling with stock selection */
+.column-list-container .list-group-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.column-list-container .list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Badge colors for column types */
+.badge.bg-primary {
+    background-color: rgba(13, 110, 253, 0.2) !important;
+    color: #0d6efd;
+}
+
+.badge.bg-danger {
+    background-color: rgba(220, 53, 69, 0.2) !important;
+    color: #dc3545;
+}
+
+/* Column Dropdown Styles */
+.column-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #212529;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.column-dropdown-list {
+    padding: 0.5rem 0;
+}
+
+.column-dropdown-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.column-dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.column-dropdown-item .badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Column dropdown functionality
+    const columnSearch = document.getElementById('columnSearch');
+    const columnDropdown = document.getElementById('columnDropdown');
+    const columnDropdownItems = document.querySelectorAll('.column-dropdown-item');
+    const columnCheckboxes = document.querySelectorAll('.column-checkbox');
+    
+    // Show dropdown when input is focused
+    columnSearch.addEventListener('focus', function() {
+        columnDropdown.style.display = 'block';
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!columnSearch.contains(event.target) && !columnDropdown.contains(event.target)) {
+            columnDropdown.style.display = 'none';
+        }
+    });
+    
+    // Filter dropdown items based on search input
+    columnSearch.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        let hasResults = false;
+        
+        columnDropdownItems.forEach(item => {
+            const columnName = item.getAttribute('data-column-name').toLowerCase();
+            const columnType = item.getAttribute('data-column-type').toLowerCase();
+            
+            if (columnName.includes(searchTerm) || columnType.includes(searchTerm)) {
+                item.style.display = 'block';
+                hasResults = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Show/hide no results message
+        document.getElementById('noColumnResults').style.display = hasResults ? 'none' : 'block';
+    });
+    
+    // Select column when clicking on dropdown item
+    columnDropdownItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const columnId = this.getAttribute('data-column-id');
+            const columnName = this.getAttribute('data-column-name');
+            
+            // Find and check the corresponding checkbox
+            const checkbox = document.getElementById(`column${columnId}`);
+            if (checkbox && !checkbox.disabled) {
+                checkbox.checked = true;
+                
+                // Add to selected columns list if not already there
+                if (!document.querySelector(`.selected-column-tag[data-column-id="${columnId}"]`)) {
+                    const selectedColumnsList = document.getElementById('selectedColumnsList');
+                    const newTag = document.createElement('div');
+                    newTag.className = 'selected-column-tag';
+                    newTag.setAttribute('data-column-id', columnId);
+                    newTag.innerHTML = `
+                        ${columnName}
+                        <button type="button" class="btn-remove-column" onclick="watchlistManager.removeSelectedColumn('${columnId}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    selectedColumnsList.appendChild(newTag);
+                    
+                    // Update selected count
+                    const selectedCount = document.getElementById('selectedColumnCount');
+                    selectedCount.textContent = parseInt(selectedCount.textContent) + 1;
+                }
+            }
+            
+            // Clear search input and hide dropdown
+            columnSearch.value = '';
+            columnDropdown.style.display = 'none';
+        });
+    });
+    
+    // Update selected column count on page load
+    const selectedColumnCount = document.getElementById('selectedColumnCount');
+    selectedColumnCount.textContent = document.querySelectorAll('.column-checkbox:checked').length;
+});
+</script> 

@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.urls import reverse
-from ..models import Watchlist, Stock, StockPrice
+from ..models import Watchlist, Stock, StockPrice, WatchlistColumn, WatchlistDisplaySettings
 from django.template.loader import render_to_string
 import logging
 import json
@@ -90,8 +90,27 @@ def create_watchlist(request):
     if request.method == 'GET':
         # Get all stocks for the create watchlist form
         stocks = Stock.objects.all().order_by('symbol')
+        
+        # Get all watchlist columns
+        watchlist_columns = WatchlistColumn.objects.filter(
+            is_active=True
+        ).order_by('order')
+        
+        # Print watchlist columns for debugging
+        print("\n=== Watchlist Columns Debug ===")
+        print("Active Watchlist Columns:")
+        for column in watchlist_columns:
+            print(f"  - ID: {column.id}")
+            print(f"    Name: {column.name}")
+            print(f"    Display Name: {column.display_name}")
+            print(f"    Type: {column.column_type}")
+            print(f"    Order: {column.order}")
+            print(f"    Required: {column.is_required}")
+            print("    ---")
+        
         context = {
             'stocks': stocks,
+            'watchlist_columns': watchlist_columns,
         }
         return render(request, 'watchlist/create_watchlist_content.html', context)
     
@@ -100,6 +119,7 @@ def create_watchlist(request):
         description = request.POST.get('description')
         visibility = request.POST.get('visibility', 'private')
         stock_ids = request.POST.getlist('stocks')
+        column_ids = request.POST.getlist('columns')  # Get selected column IDs
         
         # Debug prints
         print("\n=== Create Watchlist Debug ===")
@@ -108,6 +128,7 @@ def create_watchlist(request):
         print(f"   - Description: {description}")
         print(f"   - Visibility: {visibility}")
         print(f"   - Stock IDs: {stock_ids}")
+        print(f"   - Column IDs: {column_ids}")
         
         try:
             watchlist = Watchlist.objects.create(
@@ -131,8 +152,22 @@ def create_watchlist(request):
             
             watchlist.stocks.add(*stocks)
             
+            # Create display settings for the watchlist with selected columns
+            if column_ids:
+                columns = WatchlistColumn.objects.filter(id__in=column_ids)
+                print(f"\n4. Selected Columns:")
+                for column in columns:
+                    print(f"   - ID: {column.id}")
+                    print(f"     Name: {column.name}")
+                    print(f"     Type: {column.column_type}")
+                
+                WatchlistDisplaySettings.objects.create(
+                    watchlist=watchlist,
+                    columns=columns
+                )
+            
             # Verify stocks were added
-            print(f"\n4. Verifying Saved Stocks:")
+            print(f"\n5. Verifying Saved Stocks:")
             saved_stocks = watchlist.stocks.all()
             for stock in saved_stocks:
                 print(f"   - ID: {stock.id}")
@@ -151,7 +186,7 @@ def create_watchlist(request):
             return redirect('dashboard:watchlist:detail', watchlist_id=watchlist.id)
             
         except Exception as e:
-            print(f"\n5. Error creating watchlist: {str(e)}")
+            print(f"\n6. Error creating watchlist: {str(e)}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
                     'success': False,
