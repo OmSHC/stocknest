@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import time
 from background_task import background
 from django.db import transaction
+from .nseindia.bhavcopy import BhavcopyProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -774,4 +775,54 @@ def update_all_stocks(request):
         return JsonResponse({
             'success': False,
             'message': f'Error updating stocks: {str(e)}'
+        }, status=500)
+
+@login_required
+def update_bhavcopy(request):
+    """Update stock prices from NSE bhavcopy data."""
+    try:
+        # Try to fetch bhavcopy data for today and previous days
+        today = datetime.now().date()
+        max_days_back = 5  # Try up to 5 days back
+        
+        for days_back in range(max_days_back):
+            target_date = today - timedelta(days=days_back)
+            date_str = target_date.strftime("%d%m%Y")
+            url = f"https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{date_str}.csv"
+            
+            logger.info(f"Trying to fetch bhavcopy data for {target_date} from URL: {url}")
+            
+            try:
+                # Process the bhavcopy data
+                processor = BhavcopyProcessor()
+                success, message, stats = processor.process_specific_bhavcopy_url(url)
+                
+                if success:
+                    logger.info(f"Successfully processed bhavcopy data for {target_date}")
+                    return JsonResponse({
+                        'success': True,
+                        'message': f"Successfully updated stock prices from bhavcopy data for {target_date.strftime('%d-%m-%Y')}",
+                        'stats': stats
+                    })
+                else:
+                    logger.warning(f"Failed to process bhavcopy data for {target_date}: {message}")
+                    # Continue to the next day
+                    continue
+                    
+            except Exception as e:
+                logger.warning(f"Error processing bhavcopy data for {target_date}: {str(e)}")
+                # Continue to the next day
+                continue
+        
+        # If we get here, we couldn't find any valid bhavcopy data
+        return JsonResponse({
+            'success': False,
+            'message': f"Could not find valid bhavcopy data for the last {max_days_back} days"
+        }, status=500)
+            
+    except Exception as e:
+        logger.error(f"Error updating bhavcopy: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f"Error: {str(e)}"
         }, status=500)

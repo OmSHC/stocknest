@@ -9,4 +9,5 @@ urlpatterns = [
     path('refresh-stock-data/', views.refresh_stock_data, name='refresh_stock_data'),
     path('update-all-stocks/', views.update_all_stocks, name='update_all_stocks'),
     path('fetch-yahoo-data/', views.fetch_yahoo_data, name='fetch_yahoo_data'),
+    path('update-bhavcopy/', views.update_bhavcopy, name='update_bhavcopy'),
 ]

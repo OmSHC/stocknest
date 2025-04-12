@@ -1658,9 +1658,70 @@ if (typeof DataUpdateManager === 'undefined') {
             return formatted;
         }
 
+        getCsrfToken() {
+            // Get CSRF token from the cookie
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         initialize() {
             this.setupEventListeners();
             this.setupWatchlistClickHandlers();
+        }
+
+        async updateBhavcopy() {
+            console.log('Starting bhavcopy update');
+            
+            // Show loading state
+            const button = document.querySelector('.btn-outline-success');
+            if (button) {
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                button.disabled = true;
+            }
+            
+            // Show notification
+            this.showNotification('info', 'Starting bhavcopy update...');
+            
+            try {
+                // Make API call to update bhavcopy
+                const response = await fetch('/dataupdate/update-bhavcopy/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCsrfToken()
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.showNotification('success', data.message);
+                    // Refresh the stock list to show updated data
+                    await this.refreshStockList();
+                } else {
+                    this.showNotification('error', data.message || 'Failed to update bhavcopy data');
+                }
+            } catch (error) {
+                console.error('Error updating bhavcopy:', error);
+                this.showNotification('error', 'An error occurred while updating bhavcopy data');
+            } finally {
+                // Reset button state
+                if (button) {
+                    button.innerHTML = '<i class="fas fa-download"></i> Bhavcopy';
+                    button.disabled = false;
+                }
+            }
         }
     }
 
