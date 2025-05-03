@@ -66,7 +66,7 @@ if (typeof WatchlistManager === 'undefined') {
                 this.watchlistDetailsName = document.getElementById('watchlistDetailsName');
                 this.watchlistDetailsLoading = document.getElementById('watchlistDetailsLoading');
                 this.createWatchlistFormContainer = document.getElementById('createWatchlistFormContainer');
-                this.createWatchlistModal = document.getElementById('createWatchlistModal');
+                this.createWatchlistModal = document.getElementById('editWatchlistModal');
                 this.showCreateWatchlistBtn = document.getElementById('showCreateWatchlistBtn');
                 this.closeCreateWatchlistBtn = document.getElementById('closeCreateWatchlistBtn');
                 this.cancelCreateWatchlistBtn = document.getElementById('cancelCreateWatchlistBtn');
@@ -88,8 +88,7 @@ if (typeof WatchlistManager === 'undefined') {
         initializeModalListener() {
             if (this.createWatchlistModal) {
                 this.createWatchlistModal.addEventListener('shown.bs.modal', () => {
-                    console.log('Create Watchlist modal shown, reinitializing search');
-                    this.initializeProperties();
+                    this.initializeStockSearch();
                 });
             }
         }
@@ -306,7 +305,7 @@ if (typeof WatchlistManager === 'undefined') {
         }
 
         initializeStockSearch() {
-            const createModal = document.getElementById('createWatchlistModal');
+            const createModal = document.getElementById('editWatchlistModal');
             const searchInput = createModal.querySelector('#stockSearch');
             const stockItems = createModal.querySelectorAll('.stock-item');
             const noResults = createModal.querySelector('#noResults');
@@ -460,6 +459,7 @@ if (typeof WatchlistManager === 'undefined') {
         }
 
         async submitCreateWatchlistForm() {
+            console.log('submitCreateWatchlistForm called'); // Debug log
             const form = document.getElementById('createWatchlistForm');
             if (!form) {
                 console.error('Create watchlist form not found');
@@ -468,7 +468,32 @@ if (typeof WatchlistManager === 'undefined') {
 
             const formData = new FormData(form);
             
+            const name = form.querySelector('[name="name"]').value.trim();
+            console.log('Watchlist name:', name); // Debug name value
+            
+            // Explicitly collect selected stocks
+            const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
+            console.log('Selected stocks:', selectedStocks); // Debug selected stocks
+            
+            formData.delete('stocks'); // Remove any existing
+            selectedStocks.forEach(stockId => formData.append('stocks', stockId));
+
+            // Debug: log form data
+            for (let pair of formData.entries()) {
+                console.log('FormData:', pair[0], pair[1]);
+            }
+
+            if (!name) {
+                this.showAlert('error', 'Watchlist name is required.');
+                return;
+            }
+            if (selectedStocks.length === 0) {
+                this.showAlert('error', 'Please select at least one stock.');
+                return;
+            }
+
             try {
+                console.log('Sending request to:', form.action); // Debug request URL
                 const response = await fetch(form.action, {
                     method: 'POST',
                     body: formData,
@@ -482,16 +507,21 @@ if (typeof WatchlistManager === 'undefined') {
                 }
 
                 const result = await response.json();
+                console.log('Server response:', result); // Debug server response
                 
                 if (result.success) {
                     this.showAlert('success', 'Watchlist created successfully!');
                     // Close the modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('createWatchlistModal'));
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editWatchlistModal'));
                     if (modal) {
                         modal.hide();
                     }
-                    // Reload the watchlists
-                    this.loadWatchlists();
+                    // Redirect to the details page if provided
+                    if (result.redirect_url) {
+                        window.location.href = result.redirect_url;
+                    } else {
+                        window.location.reload();
+                    }
                 } else {
                     this.showAlert('error', result.message || 'Failed to create watchlist');
                 }
@@ -669,6 +699,15 @@ if (typeof WatchlistManager === 'undefined') {
                 const html = await response.text();
                 
                 // Create and show the modal with matching styles
+                const isEdit = !!watchlistId;
+                const buttonHtml = isEdit
+                  ? `<button type="button" class="btn btn-primary" onclick="updateWatchlistViaJS(${watchlistId})">
+                        <i class="fas fa-save me-2"></i>Update Watchlist
+                     </button>`
+                  : `<button type="button" class="btn btn-primary" onclick="createWatchlistViaJS()">
+                        <i class="fas fa-save me-2"></i>Create Watchlist
+                     </button>`;
+
                 const modalHtml = `
                     <div class="modal fade" id="editWatchlistModal" tabindex="-1" aria-labelledby="editWatchlistModalLabel" aria-hidden="true">
                         <div class="modal-dialog modal-lg">
@@ -698,9 +737,7 @@ if (typeof WatchlistManager === 'undefined') {
                                 </div>
                                 <div class="modal-footer border-secondary">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-primary" onclick="watchlistManager.updateWatchlist(${watchlistId || 'null'})">
-                                        <i class="fas fa-save me-2"></i>${watchlistId ? 'Update' : 'Create'} Watchlist
-                                    </button>
+                                    ${buttonHtml}
                                 </div>
                             </div>
                         </div>
@@ -715,6 +752,12 @@ if (typeof WatchlistManager === 'undefined') {
 
                 // Add new modal to body
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+                // Set form action to create endpoint if creating new
+                const form = document.getElementById('createWatchlistForm');
+                if (form && !watchlistId) {
+                    form.action = '/dashboard/watchlist/create/';
+                }
 
                 // Add custom styles to match watchlist details
                 const style = document.createElement('style');
@@ -1014,19 +1057,31 @@ if (typeof WatchlistManager === 'undefined') {
         }
 
         async updateWatchlist(watchlistId) {
-            const form = document.getElementById('editWatchlistForm');
-            if (!form) {
-                this.showAlert('error', 'Edit form not found');
+            // 1. Gather values from modal fields
+            const modal = document.getElementById('editWatchlistModal');
+            const name = modal.querySelector('[name="name"]').value.trim();
+            const description = modal.querySelector('[name="description"]').value.trim();
+            const visibility = modal.querySelector('[name="visibility"]') ? modal.querySelector('[name="visibility"]').value : 'private';
+            const selectedStocks = Array.from(modal.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
+
+            // 2. Validate
+            if (!name) {
+                this.showAlert('error', 'Watchlist name is required.');
+                return;
+            }
+            if (selectedStocks.length === 0) {
+                this.showAlert('error', 'Please select at least one stock.');
                 return;
             }
 
-            const formData = new FormData(form);
-            
-            // Get all checked stock checkboxes
-            const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
-            formData.delete('stocks'); // Remove the original stocks field
+            // 3. Build FormData (or URLSearchParams)
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('description', description);
+            formData.append('visibility', visibility);
             selectedStocks.forEach(stockId => formData.append('stocks', stockId));
 
+            // 4. Send via fetch
             try {
                 const response = await fetch(`/dashboard/watchlist/${watchlistId}/edit/`, {
                     method: 'POST',
@@ -1038,11 +1093,8 @@ if (typeof WatchlistManager === 'undefined') {
                 });
 
                 const result = await response.json();
-                
                 if (result.success) {
-                    // Show success message
                     this.showAlert('success', 'Watchlist updated successfully!');
-                    // Close the modal robustly
                     const modalEl = document.getElementById('editWatchlistModal');
                     if (modalEl) {
                         let modalInstance = bootstrap.Modal.getInstance(modalEl);
@@ -1051,7 +1103,6 @@ if (typeof WatchlistManager === 'undefined') {
                         }
                         modalInstance.hide();
                     }
-                    // Redirect to the details page if provided
                     if (result.redirect_url) {
                         window.location.href = result.redirect_url;
                     } else {
@@ -1222,6 +1273,10 @@ if (typeof WatchlistManager === 'undefined') {
                 alertDiv.remove();
             }, 5000);
         }
+
+        static createWatchlistViaJS() {
+            // static logic here
+        }
     }
 
     // Initialize WatchlistManager only once
@@ -1231,9 +1286,18 @@ if (typeof WatchlistManager === 'undefined') {
             window.watchlistManager = new WatchlistManager();
         }
     })();
-
-
-    
 }
 
-console.log('watchlist.js loaded'); 
+console.log('watchlist.js loaded');
+
+window.createWatchlistViaJS = function() {
+    if (window.watchlistManager) {
+        window.watchlistManager.submitCreateWatchlistForm();
+    }
+};
+
+window.updateWatchlistViaJS = function(watchlistId) {
+    if (window.watchlistManager) {
+        window.watchlistManager.updateWatchlist(watchlistId);
+    }
+}; 
