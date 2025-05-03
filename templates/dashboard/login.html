@@ -31,7 +31,7 @@
                             {{ form.password }}
                         </div>
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Login</button>
+                            <button type="submit" class="btn btn-primary" id="loginButton">Login</button>
                         </div>
                     </form>
                 </div>
@@ -61,4 +61,17 @@
         color: #ddd;
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loginButton = document.getElementById('loginButton');
+    if (loginButton) {
+        loginButton.addEventListener('click', function() {
+            console.log('Login button clicked');
+        });
+    }
+});
+</script>
 {% endblock %} 

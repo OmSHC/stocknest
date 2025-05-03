@@ -970,53 +970,6 @@ if (typeof DataUpdateManager === 'undefined') {
             }
         }
 
-        async updateWatchlist(watchlistId) {
-            const form = document.getElementById('editWatchlistForm');
-            if (!form) {
-                this.showAlert('error', 'Edit form not found');
-                return;
-            }
-
-            const formData = new FormData(form);
-            
-            // Get all checked stock checkboxes
-            const selectedStocks = Array.from(document.querySelectorAll('.stock-checkbox:checked')).map(cb => cb.value);
-            formData.delete('stocks'); // Remove the original stocks field
-            selectedStocks.forEach(stockId => formData.append('stocks', stockId));
-
-            try {
-                const response = await fetch(`/dashboard/watchlist/${watchlistId}/edit/`, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Show success message
-                    this.showAlert('success', 'Watchlist updated successfully!');
-                    
-                    // Close the modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editWatchlistModal'));
-                    if (modal) {
-                        modal.hide();
-                    }
-                    
-                    // Reload the page to show updated data
-                    window.location.reload();
-                } else {
-                    this.showAlert('error', result.message || 'Failed to update watchlist');
-                }
-            } catch (error) {
-                console.error('Error updating watchlist:', error);
-                this.showAlert('error', 'An error occurred while updating the watchlist');
-            }
-        }
-
         async deleteWatchlist(watchlistId) {
             if (!confirm('Are you sure you want to delete this watchlist? This action cannot be undone.')) {
                 return;

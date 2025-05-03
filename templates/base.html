@@ -1119,13 +1119,13 @@
             </div>
 
             <!-- Watchlist Section -->
-            <div class="watchlist-section" style="display: none;">
+            <div class="watchlist-section">
                 <div class="watchlist-header mb-4">
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-star text-warning me-2" style="font-size: 1.2rem;"></i>
                         <h5 class="mb-0">My Watchlists</h5>
                     </div>
-                    <button type="button" class="btn btn-primary btn-sm w-100" onclick="window.watchlistManager.showCreateWatchlistForm(event)">
+                    <button type="button" class="btn btn-primary btn-sm w-100" id="createWatchlistBtn">
                         <i class="fas fa-plus-circle me-2"></i>Create New Watchlist
                     </button>
                 </div>
@@ -1634,15 +1634,24 @@
     <script>
         (adsbygoogle = window.adsbygoogle || []).push({});
     </script>
-    {% block extra_js %}{% endblock %}
+    {% block extra_js %}
+    <script src="{% static 'js/watchlist.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof WatchlistManager !== 'undefined') {
+                window.watchlistManager = new WatchlistManager();
+            }
+        });
+    </script>
+    {% endblock %}
 
     <!-- Create Watchlist Modal -->
-    <div class="modal fade" id="createWatchlistModal" tabindex="-1" aria-labelledby="createWatchlistModalLabel" aria-hidden="true">
+    <div class="modal fade" id="editWatchlistModal" tabindex="-1" aria-labelledby="editWatchlistModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="createWatchlistModalLabel">Create New Watchlist</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="editWatchlistModalLabel">Create New Watchlist</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="createWatchlistForm" method="post" action="{% url 'dashboard:watchlist:create' %}">
@@ -1724,7 +1733,7 @@
     const userPanel = document.querySelector('.user-panel');
     const panelOverlay = document.querySelector('.panel-overlay');
     const watchlistSection = document.querySelector('.watchlist-section');
-    const createWatchlistModal = new bootstrap.Modal(document.getElementById('createWatchlistModal'));
+    const editWatchlistModal = new bootstrap.Modal(document.getElementById('editWatchlistModal'));
     const middleSidebarTitle = document.getElementById('middleSidebarTitle');
 
     // Function to hide all content sections
@@ -2031,7 +2040,7 @@
         .then(data => {
             if (data.success) {
                 // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('createWatchlistModal'));
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editWatchlistModal'));
                 modal.hide();
                 
                 // Reset form

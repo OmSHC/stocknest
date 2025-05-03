@@ -86,7 +86,10 @@ def watchlist_detail(request, watchlist_id):
 
 @login_required
 def create_watchlist(request):
-    """Handle watchlist creation"""
+    print("\n=== DEBUG: create_watchlist view called ===")
+    print(f"Request method: {request.method}")
+    print(f"User: {request.user}")
+    print(f"Request path: {request.path}")
     if request.method == 'GET':
         # Get all stocks for the create watchlist form
         stocks = Stock.objects.all().order_by('symbol')
@@ -108,97 +111,57 @@ def create_watchlist(request):
             print(f"    Required: {column.is_required}")
             print("    ---")
         
+        print("\n=== DEBUG: Rendering create watchlist form ===")
+        print(f"Total stocks available: {stocks.count()}")
+        print(f"Total columns available: {watchlist_columns.count()}")
+        
         context = {
             'stocks': stocks,
             'watchlist_columns': watchlist_columns,
         }
-        return render(request, 'watchlist/create_watchlist_content.html', context)
+        return render(request, 'watchlist/edit_watchlist_content.html', context)
     
     elif request.method == 'POST':
+        print("\n=== DEBUG: Processing POST to create_watchlist ===")
+        print(f"POST data: {request.POST}")
+        print(f"FILES data: {request.FILES}")
         name = request.POST.get('name')
-        description = request.POST.get('description')
-        visibility = request.POST.get('visibility', 'private')
-        stock_ids = request.POST.getlist('stocks')
-        column_ids = request.POST.getlist('columns')  # Get selected column IDs
-        
-        # Debug prints
-        print("\n=== Create Watchlist Debug ===")
-        print(f"1. Form Data:")
-        print(f"   - Name: {name}")
-        print(f"   - Description: {description}")
-        print(f"   - Visibility: {visibility}")
-        print(f"   - Stock IDs: {stock_ids}")
-        print(f"   - Column IDs: {column_ids}")
-        
+        description = request.POST.get('description', '')
+        stocks = request.POST.getlist('stocks')
+        print(f"Parsed name: {name}")
+        print(f"Parsed description: {description}")
+        print(f"Parsed stocks: {stocks}")
+        if not name:
+            print("ERROR: No name provided!")
+            return JsonResponse({'success': False, 'message': 'Watchlist name is required.'})
+        if not stocks:
+            print("ERROR: No stocks selected!")
+            return JsonResponse({'success': False, 'message': 'Please select at least one stock.'})
         try:
+            print("Attempting to create Watchlist object...")
             watchlist = Watchlist.objects.create(
-                name=name,
-                description=description,
                 created_by=request.user,
-                is_global=(visibility == 'public')
+                name=name,
+                description=description
             )
-            
-            print(f"\n2. Watchlist Created:")
-            print(f"   - ID: {watchlist.id}")
-            print(f"   - Name: {watchlist.name}")
-            
-            # Add selected stocks
-            stocks = Stock.objects.filter(id__in=stock_ids)
-            print(f"\n3. Found Stocks:")
-            for stock in stocks:
-                print(f"   - ID: {stock.id}")
-                print(f"   - Symbol: {stock.symbol}")
-                print(f"   - Name: {stock.name}")
-            
-            watchlist.stocks.add(*stocks)
-            
-            # Create display settings for the watchlist with selected columns
-            if column_ids:
-                columns = WatchlistColumn.objects.filter(id__in=column_ids)
-                print(f"\n4. Selected Columns:")
-                for column in columns:
-                    print(f"   - ID: {column.id}")
-                    print(f"     Name: {column.name}")
-                    print(f"     Type: {column.column_type}")
-                
-                WatchlistDisplaySettings.objects.create(
-                    watchlist=watchlist,
-                    columns=columns
-                )
-            
-            # Verify stocks were added
-            print(f"\n5. Verifying Saved Stocks:")
-            saved_stocks = watchlist.stocks.all()
-            for stock in saved_stocks:
-                print(f"   - ID: {stock.id}")
-                print(f"   - Symbol: {stock.symbol}")
-                print(f"   - Name: {stock.name}")
-            
-            # If it's an AJAX request, return JSON response
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Watchlist created successfully',
-                    'redirect_url': reverse('dashboard:watchlist:detail', kwargs={'watchlist_id': watchlist.id})
-                })
-            
-            # For regular form submission, redirect to the watchlist detail page
-            return redirect('dashboard:watchlist:detail', watchlist_id=watchlist.id)
-            
+            print(f"Watchlist created: {watchlist} (ID: {watchlist.id})")
+            for stock_id in stocks:
+                print(f"Adding stock ID: {stock_id}")
+                stock = Stock.objects.get(id=stock_id)
+                watchlist.stocks.add(stock)
+            print(f"All stocks added to watchlist {watchlist.id}")
+            print("Returning success JsonResponse...")
+            return JsonResponse({
+                'success': True,
+                'message': 'Watchlist created successfully!',
+                'redirect_url': f'/dashboard/watchlist/{watchlist.id}/'
+            })
         except Exception as e:
-            print(f"\n6. Error creating watchlist: {str(e)}")
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': False,
-                    'message': str(e)
-                })
-            messages.error(request, str(e))
-            return redirect('dashboard:watchlist:list')
-    
-    return JsonResponse({
-        'success': False,
-        'message': 'Invalid request method'
-    })
+            print(f"Exception occurred: {str(e)}")
+            return JsonResponse({'success': False, 'message': str(e)})
+            
+    print("ERROR: Invalid request method!")
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
 @login_required
 def create_watchlist_api(request):
@@ -363,12 +326,18 @@ def remove_stock_from_watchlist(request, watchlist_id):
 
 @login_required
 def edit_watchlist(request, watchlist_id):
-    """Handle watchlist editing"""
+    print("\n=== DEBUG: edit_watchlist view in watchlist/views.py is being called ===")
+    print(f"Request method: {request.method}")
+    print(f"User: {request.user}")
+    print(f"Request path: {request.path}")
     watchlist = get_object_or_404(Watchlist, id=watchlist_id, created_by=request.user)
+    print(f"Watchlist object: {watchlist} (ID: {watchlist.id})")
     
     if request.method == 'GET':
+        print("\n=== DEBUG: Rendering edit watchlist form ===")
         # Get all stocks for the edit form
         stocks = Stock.objects.all().order_by('symbol')
+        print(f"Total stocks available: {stocks.count()}")
         context = {
             'watchlist': watchlist,
             'stocks': stocks,
@@ -376,28 +345,36 @@ def edit_watchlist(request, watchlist_id):
         return render(request, 'watchlist/edit_watchlist_content.html', context)
     
     elif request.method == 'POST':
+        print("\n=== DEBUG: Processing POST to edit_watchlist ===")
+        print(f"POST data: {request.POST}")
+        print(f"FILES data: {request.FILES}")
         name = request.POST.get('name')
         description = request.POST.get('description')
         visibility = request.POST.get('visibility', 'private')
         stock_ids = request.POST.getlist('stocks')
-        
+        print(f"Parsed name: {name}")
+        print(f"Parsed description: {description}")
+        print(f"Parsed visibility: {visibility}")
+        print(f"Parsed stock_ids: {stock_ids}")
         try:
             # Update watchlist details
             watchlist.name = name
             watchlist.description = description
             watchlist.is_global = (visibility == 'public')
             watchlist.save()
-            
+            print(f"Watchlist updated: {watchlist} (ID: {watchlist.id})")
             # Update stocks
             stocks = Stock.objects.filter(id__in=stock_ids)
             watchlist.stocks.set(stocks)
-            
+            print(f"Stocks set for watchlist {watchlist.id}: {[s.id for s in stocks]}")
+            print("Returning success JsonResponse...")
             return JsonResponse({
                 'success': True,
-                'message': 'Watchlist updated successfully'
+                'message': 'Watchlist updated successfully',
+                'redirect_url': reverse('dashboard:watchlist:detail', kwargs={'watchlist_id': watchlist.id})
             })
-            
         except Exception as e:
+            print(f"Exception occurred: {str(e)}")
             logger.error(f"Error updating watchlist: {str(e)}")
             return JsonResponse({
                 'success': False,
