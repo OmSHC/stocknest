@@ -658,10 +658,12 @@ def update_all_stocks(request):
         # Get current date (today)
         today = datetime.now().date()
         yesterday = today - timedelta(days=1)
-        print(f"Current date: {today}")
+        logger.info(f"Starting update of all stocks. Total stocks: {total_stocks}, Current date: {today}")
 
         for stock in stocks:
             try:
+                logger.info(f"Processing stock: {stock.symbol}")
+                
                 # Get the latest date from existing data
                 latest_price = StockPrice.objects.filter(stock=stock).order_by('-date').first()
                 
@@ -672,23 +674,23 @@ def update_all_stocks(request):
                         latest_date = latest_price.date
                         if isinstance(latest_date, str):
                             latest_date = datetime.strptime(latest_date, "%Y-%m-%d").date()
-                        elif isinstance(latest_date, int):
+                        elif isinstance(latest_date, int):  # If stored as a timestamp
                             latest_date = datetime.fromtimestamp(latest_date / 1000).date()
                         elif isinstance(latest_date, datetime):
                             latest_date = latest_date.date()
                         else:
                             latest_date = pd.to_datetime(latest_date).date()
-                            
-                        # If we already have today's or yesterday's data, skip this stock
+                        
+                        # If we already have today's or yesterday's data, no need to update
                         if latest_date >= yesterday:
-                            print(f"Stock {stock.symbol} already has data for {latest_date} (today: {today})")
+                            logger.info(f"Stock {stock.symbol} already has data for {latest_date} (today: {today}) - Skipping")
                             skipped_stocks += 1
                             continue
                             
                         # If we have data, fetch from the day after the latest date
                         start_date = latest_date + timedelta(days=1)
                         
-                        print(f"Stock {stock.symbol} - Latest date in DB: {latest_date}, Start date: {start_date}")
+                        logger.info(f"Stock {stock.symbol} - Latest date in DB: {latest_date}, Start date: {start_date}, Today: {today}")
                     except Exception as e:
                         logger.error(f"Error converting date for {stock.symbol}: {e}")
                         # If date conversion fails, default to 400 days
@@ -696,39 +698,51 @@ def update_all_stocks(request):
                 else:
                     # If no data exists, fetch 400 days of historical data
                     start_date = today - timedelta(days=400)
+                    logger.info(f"Stock {stock.symbol} - No existing data found. Fetching 400 days of historical data")
                 
-                # Add .NS suffix for NSE stocks
-                yahoo_symbol = f"{stock.symbol}.NS"
-                print(f"Fetching data for {yahoo_symbol} from {start_date} to {today}")
+                # Use the fetch_stock_data function
+                logger.info(f"Fetching data for {stock.symbol} from {start_date} to {today}")
+                success, message, data = fetch_stock_data(stock.symbol, start_date, today)
                 
-                data = yf.download(yahoo_symbol, start=start_date, end=today, progress=False)
-                
-                if data.empty:
-                    print(f"No data returned for {yahoo_symbol}. Trying without .NS suffix...")
-                    # Try without .NS suffix
-                    data = yf.download(stock.symbol, start=start_date, end=today, progress=False)
+                if not success:
+                    logger.error(f"Failed to fetch data for {stock.symbol}: {message}")
+                    failed_stocks.append(stock.symbol)
+                    continue
                     
-                    if data.empty:
-                        print(f"No data returned for {stock.symbol} (with or without .NS). Skipping.")
-                        failed_stocks.append(stock.symbol)
-                        continue
+                if data.empty:
+                    logger.warning(f"No data returned for {stock.symbol} in the specified date range")
+                    failed_stocks.append(stock.symbol)
+                    continue
                 
+                # Check if data is available up to the requested end date
+                last_date = pd.Timestamp(data.index[-1]).date()
+                if last_date < today:
+                    logger.warning(f"Data only available up to {last_date}, not {today}")
+                    # Update end_date to the last available date
+                    end_date = last_date
+                else:
+                    end_date = today
+                
+                logger.info(f"Successfully fetched {len(data)} days of data for {stock.symbol}")
                 rows_processed = 0
                 
                 for index, row in data.iterrows():
                     try:
                         date = pd.Timestamp(index).date()
                         
-                        open_price = round(float(row["Open"]), 2)
-                        high_price = round(float(row["High"]), 2)
-                        low_price = round(float(row["Low"]), 2)
-                        close_price = round(float(row["Close"]), 2)
-                        volume = round(float(row["Volume"]), 0)
-                        adjusted_close = round(float(row["Adj Close"]), 2)
+                        # Get values using iloc[0] to avoid FutureWarning
+                        open_price = round(float(row.iloc[data.columns.get_loc('Open')].iloc[0]), 2)
+                        high_price = round(float(row.iloc[data.columns.get_loc('High')].iloc[0]), 2)
+                        low_price = round(float(row.iloc[data.columns.get_loc('Low')].iloc[0]), 2)
+                        close_price = round(float(row.iloc[data.columns.get_loc('Close')].iloc[0]), 2)
+                        volume = round(float(row.iloc[data.columns.get_loc('Volume')].iloc[0]), 0)
                         
-                        # Calculate previous close
-                        prev_close = close_price if index == data.index[0] else round(
-                            float(data.iloc[data.index.get_loc(index) - 1]["Close"]), 2)
+                        # Calculate adjusted close if not available
+                        adjusted_close = close_price
+                        if 'Adj Close' in data.columns:
+                            adjusted_close = round(float(row.iloc[data.columns.get_loc('Adj Close')].iloc[0]), 2)
+                        
+                        logger.debug(f"Processing data for {stock.symbol} on {date}: Open={open_price}, High={high_price}, Low={low_price}, Close={close_price}, Volume={volume}")
                         
                         # Store in database
                         StockPrice.objects.update_or_create(
@@ -740,8 +754,7 @@ def update_all_stocks(request):
                                 'low_price': low_price,
                                 'close_price': close_price,
                                 'adjusted_close': adjusted_close,
-                                'volume': volume,
-                                'previous_close': prev_close
+                                'volume': volume
                             }
                         )
                         rows_processed += 1
@@ -754,17 +767,22 @@ def update_all_stocks(request):
                 stock.last_updated = datetime.now()
                 stock.save()
                 
-                print(f"Successfully updated {rows_processed} days of data for {stock.symbol}")
+                logger.info(f"Successfully updated {rows_processed} days of data for {stock.symbol}")
                 updated_stocks += 1
+                
+                # Add a 5-second delay before processing the next stock
+                logger.info(f"Waiting 5 seconds before processing next stock...")
+                time.sleep(5)
                 
             except Exception as e:
                 logger.error(f"Error updating stock {stock.symbol}: {str(e)}")
                 failed_stocks.append(stock.symbol)
                 continue
         
+        logger.info(f"Update completed. Updated: {updated_stocks}, Skipped: {skipped_stocks}, Failed: {len(failed_stocks)}")
         return JsonResponse({
             'success': True,
-            'message': f'Successfully updated {updated_stocks} out of {total_stocks} stocks (skipped {skipped_stocks} already up-to-date stocks)',
+            'message': f'Successfully updated {updated_stocks} out of {total_stocks} stocks (skipped {skipped_stocks} already up-to-date stocks, failed {len(failed_stocks)})',
             'updated_count': updated_stocks,
             'skipped_count': skipped_stocks,
             'failed_stocks': failed_stocks

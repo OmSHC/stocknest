@@ -1292,7 +1292,7 @@ if (typeof DataUpdateManager === 'undefined') {
         }
 
         async updateAllStocksWithThrottling() {
-            console.log('Starting throttled update of all stocks');
+            console.log('Starting update of all stocks');
             
             // Show loading state
             const button = document.querySelector('.btn-update-all-stocks');
@@ -1304,92 +1304,37 @@ if (typeof DataUpdateManager === 'undefined') {
             // Show notification
             this.showMessage('info', 'Starting update of all stocks...');
             
-            // Get all stocks from the table
-            const stockRows = document.querySelectorAll('#stockList tr');
-            const stocks = Array.from(stockRows).map(row => {
-                const symbolCell = row.querySelector('td:first-child strong');
-                return symbolCell ? symbolCell.textContent.trim() : null;
-            }).filter(symbol => symbol);
-            
-            console.log(`Found ${stocks.length} stocks to update`);
-            
-            if (stocks.length === 0) {
-                this.showMessage('warning', 'No stocks found to update');
+            try {
+                // Get CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                const response = await fetch('/dashboard/dataupdate/update-all-stocks/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.showMessage('success', data.message);
+                    // Refresh the stock list to show updated data
+                    await this.refreshStockList();
+                } else {
+                    this.showMessage('error', data.message || 'Failed to update stocks');
+                }
+            } catch (error) {
+                console.error('Error updating all stocks:', error);
+                this.showMessage('error', 'An error occurred while updating stocks');
+            } finally {
+                // Reset button state
                 if (button) {
                     button.innerHTML = '<i class="fas fa-sync"></i> Update All';
                     button.disabled = false;
                 }
-                return;
             }
-            
-            // Process stocks with throttling
-            let processed = 0;
-            let success = 0;
-            let failed = 0;
-            let skipped = 0;
-            
-            // Function to process a single stock
-            const processStock = async (index) => {
-                if (index >= stocks.length) {
-                    // All stocks processed
-                    this.showMessage('success', `Completed updating ${success} out of ${stocks.length} stocks (${skipped} skipped, ${failed} failed)`);
-                    if (button) {
-                        button.innerHTML = '<i class="fas fa-sync"></i> Update All';
-                        button.disabled = false;
-                    }
-                    await this.refreshStockList();
-                    return;
-                }
-                
-                const symbol = stocks[index];
-                console.log(`Processing stock ${index + 1}/${stocks.length}: ${symbol}`);
-                
-                // Update progress notification
-                this.showMessage('info', `Updating ${symbol} (${index + 1}/${stocks.length})...`);
-                
-                try {
-                    // Get CSRF token
-                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                    
-                    const response = await fetch('/dashboard/dataupdate/refresh-stock-data/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
-                        },
-                        body: JSON.stringify({ symbol })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    processed++;
-                    if (data.success) {
-                        // Check if the stock was skipped because it's already up to date
-                        if (data.message && data.message.includes('already up to date')) {
-                            skipped++;
-                            console.log(`Skipped ${symbol} (already up to date)`);
-                        } else {
-                            success++;
-                            console.log(`Successfully updated ${symbol}`);
-                        }
-                    } else {
-                        failed++;
-                        console.error(`Failed to update ${symbol}: ${data.message}`);
-                    }
-                } catch (error) {
-                    processed++;
-                    failed++;
-                    console.error(`Error updating ${symbol}:`, error);
-                }
-                
-                // Schedule next stock update with a delay
-                setTimeout(() => {
-                    processStock(index + 1);
-                }, 2000); // 2 second delay between requests
-            };
-            
-            // Start processing the first stock
-            processStock(0);
         }
 
         showMessage(type, message) {
