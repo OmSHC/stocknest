@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Technical Screener{% endblock %}
+
+{% block extra_css %}
+<style>
+.screener-conditions-block {
+    background: #f8f9fb;
+    border: 1.5px solid #e0e3ea;
+    border-radius: 12px;
+    padding: 24px 32px 28px 32px;
+    margin: 32px 0 0 0;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    box-shadow: 0 4px 16px rgba(80, 80, 120, 0.06);
+}
+.screener-conditions-block .conditions-list {
+    margin: 24px 0 0 0;
+    padding: 0 0 0 18px;
+    border-left: 2px dotted #d0d3e0;
+}
+.screener-condition-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 18px;
+    font-size: 1.08rem;
+    gap: 12px;
+    background: #fff;
+    border: 1.5px solid #e0e3ea;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(80, 80, 120, 0.04);
+    padding: 10px 16px;
+    transition: box-shadow 0.2s;
+    min-height: 48px;
+}
+.screener-condition-row:focus-within,
+.screener-condition-row:hover {
+    box-shadow: 0 4px 16px rgba(108, 71, 255, 0.10);
+    border-color: #bdb6f7;
+}
+.screener-pill-select,
+.screener-pill-input {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid #d0d3e0;
+    border-radius: 20px;
+    padding: 4px 16px;
+    font-weight: 600;
+    font-size: 0.98em;
+    background: #e6eaff;
+    color: #3a3a6a;
+    outline: none;
+    min-width: 90px;
+    transition: border 0.2s, background 0.2s;
+    box-shadow: none;
+    margin-right: 8px;
+}
+.screener-pill-select:focus,
+.screener-pill-input:focus {
+    border-color: #6c47ff;
+    background: #f5f6fa;
+}
+.screener-pill-select.field {
+    background: #f3eaff;
+    color: #6c47ff;
+}
+.screener-pill-select.operator {
+    background: #fbeaff;
+    color: #b800b8;
+    font-weight: 700;
+}
+.screener-pill-input.value {
+    background: #f8f9fb;
+    color: #222;
+    font-weight: 500;
+    min-width: 70px;
+    text-align: center;
+}
+.screener-action-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+}
+.screener-action-icon {
+    background: #f3eaff;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    border: none;
+    padding: 0;
+}
+.screener-action-icon:hover {
+    background: #6c47ff;
+    color: #fff;
+}
+.screener-action-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: #6c47ff;
+    transition: fill 0.2s;
+}
+.screener-action-icon:hover svg {
+    fill: #fff;
+}
+.screener-drag-handle {
+    cursor: grab;
+    margin-right: 10px;
+    color: #bdb6f7;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+}
+.expr-menu-option {
+    color: #2a2a2a !important;
+    background: #fff;
+    font-weight: 500;
+    padding: 6px 18px;
+    cursor: pointer;
+}
+.expr-menu-option:hover {
+    background: #f3eaff;
+    color: #6c47ff !important;
+}
+.expr-plus-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: #f3eaff;
+    border: none;
+    border-radius: 50%;
+    color: #6c47ff;
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-left: 4px;
+    margin-right: 2px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    outline: none;
+    box-shadow: none;
+}
+.expr-plus-btn:hover {
+    background: #6c47ff;
+    color: #fff;
+}
+.expr-remove-btn {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s;
+    margin-left: 4px;
+}
+.expr-node:hover > .expr-remove-btn {
+    opacity: 1;
+    visibility: visible;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Main Content Area -->
+        <div class="col-12">
+            <div class="card bg-dark text-light">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-filter text-primary me-2"></i>Create Technical Screener
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="screener-form">
+                        {% csrf_token %}
+                        
+                        <!-- Basic Information -->
+                        <div class="mb-4">
+                            <h5 class="text-light mb-3">Basic Information</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="name" class="form-label">Screener Name</label>
+                                    <input type="text" class="form-control bg-dark text-light" id="name" name="name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="visibility" class="form-label">Visibility</label>
+                                    <select class="form-select bg-dark text-light" id="visibility" name="visibility">
+                                        <option value="private">Private</option>
+                                        <option value="public">Public</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control bg-dark text-light" id="description" name="description" rows="3"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Conditions -->
+                        <div class="mb-4 screener-conditions-block">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="text-dark mb-0">Conditions</h5>
+                                <button type="button" class="add-condition-btn" id="add-condition">
+                                    <i class="fas fa-plus"></i> Add Condition
+                                </button>
+                            </div>
+                            <div id="conditions-container" class="conditions-list">
+                                <!-- Conditions will be added here dynamically -->
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Create Screener
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Condition Template -->
+<template id="condition-template">
+    <div class="condition screener-condition-row border-light mb-3">
+        <span class="screener-drag-handle" title="Drag to reorder">&#9776;</span>
+        <div class="expression-builder" style="flex:1; min-width:180px;"></div>
+        <input type="hidden" class="expression-json" name="expression_json">
+        <div class="screener-action-icons">
+            <button class="screener-action-icon remove-condition" title="Delete filter">
+                <svg viewBox="0 0 15 15"><path d="M4 11.875L3.125 11L6.625 7.5L3.125 4L4 3.125L7.5 6.625L11 3.125L11.875 4L8.375 7.5L11.875 11L11 11.875L7.5 8.375L4 11.875Z"></path></svg>
+            </button>
+            <button type="button" class="add-row-btn" title="Add new row" style="font-size:2em;font-weight:900;line-height:1;color:#6c47ff;background:none;border:none;cursor:pointer;">+</button>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/technical.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof window.technicalAnalysis !== 'undefined') {
+        window.technicalAnalysis.initializeScreener();
+    }
+});
+</script>
+{% endblock %} 
