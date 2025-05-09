@@ -536,8 +536,8 @@ function createExprNode(option, hiddenInput) {
         const label = document.createElement('span');
         label.textContent = option.label;
         node.appendChild(label);
-        // If function, operator, or comparator, add args as plus buttons
-        if (option.type === 'func' || option.type === 'operator' || option.type === 'comparator') {
+        // If function, add args as plus buttons with brackets
+        if (option.type === 'func') {
             node.appendChild(document.createTextNode('('));
             for (let i = 0; i < option.args; i++) {
                 const argSpan = document.createElement('span');
@@ -548,6 +548,17 @@ function createExprNode(option, hiddenInput) {
                 if (i < option.args - 1) node.appendChild(document.createTextNode(', '));
             }
             node.appendChild(document.createTextNode(')'));
+        }
+        // If operator or comparator, add args as plus buttons without brackets
+        else if (option.type === 'operator' || option.type === 'comparator') {
+            for (let i = 0; i < option.args; i++) {
+                const argSpan = document.createElement('span');
+                argSpan.className = 'expr-arg';
+                argSpan.style.margin = '0 2px';
+                buildExprNode(argSpan, null, hiddenInput); // Always just a plus button
+                node.appendChild(argSpan);
+                if (i < option.args - 1) node.appendChild(document.createTextNode(' ' + option.label + ' '));
+            }
         }
         node.getExpr = function() {
             if (option.type === 'var') return { type: 'var', label: option.label };
