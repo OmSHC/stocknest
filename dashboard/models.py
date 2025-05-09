@@ -458,3 +458,42 @@ class WatchlistDisplaySettings(models.Model):
             self.columns.remove(column)
         
         return True
+
+class TechnicalScreener(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='created_screeners'
+    )
+    is_global = models.BooleanField(default=False)
+    subscribers = models.ManyToManyField(User, blank=True, related_name='subscribed_screeners')
+    conditions = models.JSONField(default=dict)  # Store screener conditions
+    
+    def __str__(self):
+        return f"{self.name} (Created by: {self.created_by.username if self.created_by else 'None'})"
+    
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['name', 'created_by']
+    
+    @property
+    def subscriber_count(self):
+        return self.subscribers.count()
+
+class ScreenerCondition(models.Model):
+    screener = models.ForeignKey(TechnicalScreener, on_delete=models.CASCADE, related_name='screener_conditions')
+    condition_json = models.JSONField()
+    order = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"Condition {self.order} for {self.screener.name}"

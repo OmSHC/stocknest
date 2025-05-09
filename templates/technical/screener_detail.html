@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ screener.name }} - Technical Screener{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Main Content Area -->
+        <div class="col-12">
+            <div class="card bg-dark text-light">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-filter text-primary me-2"></i>{{ screener.name }}
+                    </h4>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="runScreener({{ screener.id }})">
+                            <i class="fas fa-play me-2"></i>Run Screener
+                        </button>
+                        {% if is_owner %}
+                        <button class="btn btn-outline-danger" onclick="deleteScreener({{ screener.id }})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% endif %}
+                        {% if not is_owner %}
+                            {% if is_subscriber %}
+                            <button class="btn btn-outline-warning" onclick="unsubscribeScreener({{ screener.id }})">
+                                <i class="fas fa-bell-slash me-2"></i>Unsubscribe
+                            </button>
+                            {% else %}
+                            <button class="btn btn-outline-success" onclick="subscribeScreener({{ screener.id }})">
+                                <i class="fas fa-bell me-2"></i>Subscribe
+                            </button>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Screener Info -->
+                    <div class="mb-4">
+                        {% if screener.description %}
+                        <p class="text-muted">{{ screener.description }}</p>
+                        {% endif %}
+                        <div class="d-flex align-items-center text-muted">
+                            <small>
+                                <i class="fas fa-user me-1"></i>
+                                Created by {{ screener.created_by.username }}
+                            </small>
+                            <small class="mx-3">•</small>
+                            <small>
+                                <i class="fas fa-calendar me-1"></i>
+                                Created {{ screener.created_at|date:"M d, Y" }}
+                            </small>
+                            <small class="mx-3">•</small>
+                            <small>
+                                <i class="fas fa-users me-1"></i>
+                                {{ screener.subscriber_count }} subscribers
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- Conditions -->
+                    <div class="mb-4">
+                        <h5 class="text-light mb-3">Conditions</h5>
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Field</th>
+                                        <th>Operator</th>
+                                        <th>Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for condition in screener.conditions %}
+                                    <tr>
+                                        <td>{{ condition.field|title }}</td>
+                                        <td>
+                                            {% if condition.operator == '>' %}
+                                            Greater Than
+                                            {% elif condition.operator == '<' %}
+                                            Less Than
+                                            {% else %}
+                                            Equals
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ condition.value }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Results -->
+                    <div>
+                        <h5 class="text-light mb-3">Results</h5>
+                        <div id="screener-results">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>Click "Run Screener" to see results
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/technical.js' %}"></script>
+<script>
+function runScreener(screenerId) {
+    window.technicalAnalysis.runScreener(screenerId);
+}
+
+function deleteScreener(screenerId) {
+    if (confirm('Are you sure you want to delete this screener?')) {
+        fetch(`/dashboard/technical/${screenerId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/dashboard/technical/';
+            } else {
+                alert('Error deleting screener');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting screener');
+        });
+    }
+}
+
+function subscribeScreener(screenerId) {
+    fetch(`/dashboard/technical/${screenerId}/subscribe/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Error subscribing to screener');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error subscribing to screener');
+    });
+}
+
+function unsubscribeScreener(screenerId) {
+    if (confirm('Are you sure you want to unsubscribe from this screener?')) {
+        fetch(`/dashboard/technical/${screenerId}/unsubscribe/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Error unsubscribing from screener');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error unsubscribing from screener');
+        });
+    }
+}
+</script>
+{% endblock %} 

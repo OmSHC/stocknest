@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Technical Screeners{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Main Content Area -->
+        <div class="col-12">
+            <div class="card bg-dark text-light">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-filter text-primary me-2"></i>Technical Screeners
+                    </h4>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'dashboard:technical:create_screener' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create New Screener
+                        </a>
+                        <a href="#" class="btn btn-success" id="runScreenerBtn">
+                            <i class="fas fa-play me-2"></i>Run Screener
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if db_unavailable %}
+                        <div class="alert alert-warning my-4">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Technical screener database is not available. You can still create a new screener.
+                        </div>
+                    {% else %}
+                        <!-- Personal Screeners -->
+                        <div class="mb-4">
+                            <h5 class="text-light mb-3">Created By Me</h5>
+                            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                                {% for screener in personal_screeners %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card bg-dark border-light h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h6 class="card-title text-light mb-0">
+                                                    <i class="fas fa-filter text-primary me-2"></i>
+                                                    <a href="{% url 'dashboard:technical:screener_detail' screener.id %}" class="text-light">
+                                                        {{ screener.name }}
+                                                    </a>
+                                                </h6>
+                                                <span class="badge bg-primary">{{ screener.subscriber_count }} subscribers</span>
+                                            </div>
+                                            {% if screener.description %}
+                                            <p class="card-text text-muted small mb-3">{{ screener.description }}</p>
+                                            {% endif %}
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">Created {{ screener.created_at|date:"M d, Y" }}</small>
+                                                <div class="btn-group">
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="runScreener({{ screener.id }})">
+                                                        <i class="fas fa-play me-1"></i>Run
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteScreener({{ screener.id }})">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>No screeners created yet.
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <!-- Global Screeners -->
+                        <div class="mb-4">
+                            <h5 class="text-light mb-3">Global Screeners</h5>
+                            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                                {% for screener in global_screeners %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card bg-dark border-light h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h6 class="card-title text-light mb-0">
+                                                    <i class="fas fa-globe text-success me-2"></i>
+                                                    <a href="{% url 'dashboard:technical:screener_detail' screener.id %}" class="text-light">
+                                                        {{ screener.name }}
+                                                    </a>
+                                                </h6>
+                                                <span class="badge bg-primary">{{ screener.subscriber_count }} subscribers</span>
+                                            </div>
+                                            {% if screener.description %}
+                                            <p class="card-text text-muted small mb-3">{{ screener.description }}</p>
+                                            {% endif %}
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">Created by {{ screener.created_by.username }} on {{ screener.created_at|date:"M d, Y" }}</small>
+                                                <div class="btn-group">
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="runScreener({{ screener.id }})">
+                                                        <i class="fas fa-play me-1"></i>Run
+                                                    </button>
+                                                    {% if request.user in screener.subscribers.all %}
+                                                    <button class="btn btn-sm btn-outline-warning" onclick="unsubscribeScreener({{ screener.id }})">
+                                                        <i class="fas fa-bell-slash"></i>
+                                                    </button>
+                                                    {% else %}
+                                                    <button class="btn btn-sm btn-outline-success" onclick="subscribeScreener({{ screener.id }})">
+                                                        <i class="fas fa-bell"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>No global screeners available.
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function runScreener(screenerId) {
+    window.technicalAnalysis.runScreener(screenerId);
+}
+
+function deleteScreener(screenerId) {
+    if (confirm('Are you sure you want to delete this screener?')) {
+        fetch(`/dashboard/technical/${screenerId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Error deleting screener');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting screener');
+        });
+    }
+}
+
+function subscribeScreener(screenerId) {
+    fetch(`/dashboard/technical/${screenerId}/subscribe/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Error subscribing to screener');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error subscribing to screener');
+    });
+}
+
+function unsubscribeScreener(screenerId) {
+    if (confirm('Are you sure you want to unsubscribe from this screener?')) {
+        fetch(`/dashboard/technical/${screenerId}/unsubscribe/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Error unsubscribing from screener');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error unsubscribing from screener');
+        });
+    }
+}
+
+document.getElementById('runScreenerBtn')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    alert('Run Screener functionality coming soon!');
+});
+</script>
+{% endblock %} 

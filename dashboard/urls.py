@@ -11,6 +11,7 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='dashboard:login'), name='logout'),
     path('watchlist/', include('dashboard.watchlist.urls', namespace='watchlist')),
     path('dataupdate/', include('dashboard.dataupdate.urls', namespace='dataupdate')),
+    path('technical/', include('dashboard.technical.urls', namespace='technical')),
     path('portfolio/', views.portfolio, name='portfolio'),
     path('market-insights/', views.market_insights, name='market_insights'),
     path('risk-analysis/', views.risk_analysis, name='risk_analysis'),
