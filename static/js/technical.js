@@ -455,29 +455,34 @@ const MENU_OPTIONS = [
 
 function initializeExpressionBuilder(container, hiddenInput) {
     container.innerHTML = '';
-    buildExprNode(container, null, hiddenInput);
+    // If there is an existing expression, render it (not used in this version)
+    // Otherwise, just add the plus button at the end
+    addPlusButtonAtEnd(container, hiddenInput);
+}
+
+function addPlusButtonAtEnd(container, hiddenInput) {
+    // Only one plus button at the end
+    const plus = document.createElement('button');
+    plus.type = 'button';
+    plus.className = 'expr-plus-btn';
+    plus.textContent = '+';
+    plus.onclick = function(e) {
+        e.stopPropagation();
+        showExprMenu(plus, (option) => {
+            // When an option is selected, add the node before the plus button
+            const node = createExprNode(option, hiddenInput);
+            container.insertBefore(node, plus);
+            updateHiddenExpr(container, hiddenInput);
+        });
+    };
+    container.appendChild(plus);
 }
 
 function buildExprNode(parent, expr, hiddenInput) {
     // expr: {type, label, args: [expr,...]} or null
     if (!expr) {
-        // Show plus button
-        const plus = document.createElement('button');
-        plus.type = 'button';
-        plus.className = 'expr-plus-btn';
-        plus.textContent = '+';
-        plus.onclick = function(e) {
-            e.stopPropagation();
-            showExprMenu(plus, (option) => {
-                parent.removeChild(plus);
-                const node = createExprNode(option, hiddenInput);
-                parent.appendChild(node);
-                // Always add another plus after
-                buildExprNode(parent, null, hiddenInput);
-                updateHiddenExpr(parent, hiddenInput);
-            });
-        };
-        parent.appendChild(plus);
+        // Do not add a plus button here anymore
+        return;
     } else {
         // Render expr node (not used in this version)
     }
@@ -531,46 +536,77 @@ function createExprNode(option, hiddenInput) {
         node.getExpr = function() {
             return { type: 'number', value: input.value };
         };
-    } else {
-        // Label
+    } else if (option.type === 'func') {
+        // Functions: label(arg1, arg2)
         const label = document.createElement('span');
         label.textContent = option.label;
         node.appendChild(label);
-        // If function, add args as plus buttons with brackets
-        if (option.type === 'func') {
-            node.appendChild(document.createTextNode('('));
-            for (let i = 0; i < option.args; i++) {
-                const argSpan = document.createElement('span');
-                argSpan.className = 'expr-arg';
-                argSpan.style.margin = '0 2px';
-                buildExprNode(argSpan, null, hiddenInput); // Always just a plus button
-                node.appendChild(argSpan);
-                if (i < option.args - 1) node.appendChild(document.createTextNode(', '));
-            }
-            node.appendChild(document.createTextNode(')'));
+        node.appendChild(document.createTextNode('('));
+        for (let i = 0; i < option.args; i++) {
+            const argSpan = document.createElement('span');
+            argSpan.className = 'expr-arg';
+            argSpan.style.margin = '0 2px';
+
+            // Add a plus button inside each argument slot
+            const plus = document.createElement('button');
+            plus.type = 'button';
+            plus.className = 'expr-plus-btn';
+            plus.textContent = '+';
+            plus.onclick = function(e) {
+                e.stopPropagation();
+                showExprMenu(plus, (opt) => {
+                    argSpan.removeChild(plus);
+                    const childNode = createExprNode(opt, hiddenInput);
+                    argSpan.appendChild(childNode);
+                    updateHiddenExpr(node.parentNode, hiddenInput);
+                });
+            };
+            argSpan.appendChild(plus);
+
+            node.appendChild(argSpan);
+            if (i < option.args - 1) node.appendChild(document.createTextNode(', '));
         }
-        // If operator or comparator, add args as plus buttons without brackets
-        else if (option.type === 'operator' || option.type === 'comparator') {
-            for (let i = 0; i < option.args; i++) {
-                const argSpan = document.createElement('span');
-                argSpan.className = 'expr-arg';
-                argSpan.style.margin = '0 2px';
-                buildExprNode(argSpan, null, hiddenInput); // Always just a plus button
-                node.appendChild(argSpan);
-                if (i < option.args - 1) node.appendChild(document.createTextNode(' ' + option.label + ' '));
+        node.appendChild(document.createTextNode(')'));
+        node.getExpr = function() {
+            const args = Array.from(node.querySelectorAll(':scope > .expr-arg')).map(arg => {
+                const plus = arg.querySelector('.expr-plus-btn');
+                if (plus) return null;
+                const child = arg.querySelector('.expr-node');
+                return child && child.getExpr ? child.getExpr() : null;
+            });
+            return { type: option.type, label: option.label, args };
+        };
+    } else if (option.type === 'operator' || option.type === 'comparator') {
+        // Operators/Comparators: arg1 <symbol> arg2 (no parentheses)
+        for (let i = 0; i < option.args; i++) {
+            if (i > 0) {
+                const symbol = document.createElement('span');
+                symbol.textContent = ' ' + option.label + ' ';
+                symbol.style.margin = '0 4px';
+                node.appendChild(symbol);
             }
+            const argSpan = document.createElement('span');
+            argSpan.className = 'expr-arg';
+            argSpan.style.margin = '0 2px';
+            buildExprNode(argSpan, null, hiddenInput);
+            node.appendChild(argSpan);
         }
         node.getExpr = function() {
-            if (option.type === 'var') return { type: 'var', label: option.label };
-            if (option.type === 'func' || option.type === 'operator' || option.type === 'comparator') {
-                const args = Array.from(node.querySelectorAll(':scope > .expr-arg')).map(arg => {
-                    const plus = arg.querySelector('.expr-plus-btn');
-                    if (plus) return null;
-                    const child = arg.querySelector('.expr-node');
-                    return child && child.getExpr ? child.getExpr() : null;
-                });
-                return { type: option.type, label: option.label, args };
-            }
+            const args = Array.from(node.querySelectorAll(':scope > .expr-arg')).map(arg => {
+                const plus = arg.querySelector('.expr-plus-btn');
+                if (plus) return null;
+                const child = arg.querySelector('.expr-node');
+                return child && child.getExpr ? child.getExpr() : null;
+            });
+            return { type: option.type, label: option.label, args };
+        };
+    } else if (option.type === 'var') {
+        // Attributes: just the label
+        const label = document.createElement('span');
+        label.textContent = option.label;
+        node.appendChild(label);
+        node.getExpr = function() {
+            return { type: 'var', label: option.label };
         };
     }
     node.appendChild(removeBtn);
